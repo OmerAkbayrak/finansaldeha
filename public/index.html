@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kur Savaşları 🌐 Multiplayer</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;500;700;900&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-dark: #0a0e27;
+      --bg-card: #141935;
+      --accent-gold: #ffd700;
+      --accent-green: #00ff88;
+      --accent-red: #ff4466;
+      --accent-blue: #4488ff;
+      --text-primary: #ffffff;
+      --text-secondary: #8892b0;
+      --border: #2a3f5f;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 1; }
+
+    h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 3rem;
+      font-weight: 900;
+      text-align: center;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--accent-gold), var(--accent-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-transform: uppercase;
+      letter-spacing: -2px;
+      animation: glow 3s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3)); }
+      50% { filter: drop-shadow(0 0 30px rgba(68, 136, 255, 0.5)); }
+    }
+
+    .subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 40px; font-size: 1rem; }
+
+    .card {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    label { display: block; color: var(--text-secondary); margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-family: 'Outfit', sans-serif;
+      margin-bottom: 16px;
+      transition: all 0.3s;
+    }
+
+    input:focus, select:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 3px rgba(255,215,0,0.1); }
+
+    .btn {
+      background: linear-gradient(135deg, var(--accent-gold), #ffed4e);
+      color: var(--bg-dark);
+      border: none;
+      padding: 14px 36px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: 'Space Mono', monospace;
+      box-shadow: 0 4px 20px rgba(255,215,0,0.3);
+    }
+
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(255,215,0,0.5); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-secondary {
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      border: 2px solid var(--border);
+      box-shadow: none;
+    }
+
+    .btn-secondary:hover { border-color: var(--accent-gold); box-shadow: 0 4px 15px rgba(255,215,0,0.2); }
+
+    .btn-red {
+      background: linear-gradient(135deg, var(--accent-red), #ff6688);
+      color: white;
+      box-shadow: 0 4px 20px rgba(255,68,102,0.3);
+    }
+
+    .btn-red:hover { box-shadow: 0 6px 30px rgba(255,68,102,0.5); }
+
+    .btn-green {
+      background: linear-gradient(135deg, var(--accent-green), #00cc66);
+      color: var(--bg-dark);
+      box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+    }
+
+    .hidden { display: none !important; }
+
+    /* ── Screens ── */
+    .screen { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Home Screen ── */
+    .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 700px; margin: 40px auto 0; }
+    @media (max-width: 600px) { .home-grid { grid-template-columns: 1fr; } }
+
+    .home-option {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .home-option:hover { border-color: var(--accent-gold); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(255,215,0,0.2); }
+    .home-option .icon { font-size: 3rem; margin-bottom: 12px; }
+    .home-option h3 { font-size: 1.3rem; margin-bottom: 8px; color: var(--accent-gold); }
+    .home-option p { font-size: 0.9rem; color: var(--text-secondary); }
+
+    /* ── Lobby ── */
+    .room-code-display {
+      font-family: 'Space Mono', monospace;
+      font-size: 3rem;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 8px;
+      color: var(--accent-gold);
+      background: var(--bg-dark);
+      border: 3px dashed var(--accent-gold);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .room-code-display:hover { background: rgba(255,215,0,0.05); }
+
+    .players-list { display: grid; gap: 12px; }
+    .lobby-player {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+    }
+    .lobby-player.ready { border-color: var(--accent-green); }
+    .lobby-player.host { border-color: var(--accent-gold); }
+
+    .lobby-player-name { font-weight: 700; font-size: 1.05rem; }
+    .lobby-player-status { font-size: 0.85rem; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+    .status-ready { background: rgba(0,255,136,0.15); color: var(--accent-green); }
+    .status-waiting { background: rgba(136,146,176,0.15); color: var(--text-secondary); }
+    .status-host { background: rgba(255,215,0,0.15); color: var(--accent-gold); }
+
+    .cards-preview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .card-preview-item {
+      padding: 16px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .card-preview-item.start { background: var(--bg-dark); border: 2px solid var(--accent-gold); }
+    .card-preview-item.goal { background: var(--bg-dark); border: 2px solid var(--accent-blue); }
+    .card-preview-item .card-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px; }
+    .card-preview-item .card-value { font-family: 'Space Mono', monospace; font-size: 1.3rem; font-weight: 700; }
+    .card-preview-item.start .card-value { color: var(--accent-gold); }
+    .card-preview-item.goal .card-value { color: var(--accent-blue); }
+
+    /* ── Game Screen ── */
+    .game-header {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-box {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-box .stat-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .stat-box .stat-value { font-family: 'Space Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--accent-gold); }
+
+    .game-main { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+    @media (max-width: 900px) { .game-main { grid-template-columns: 1fr; } }
+
+    .rates-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+    @media (max-width: 700px) { .rates-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .rate-item {
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+      transition: all 0.4s;
+    }
+
+    .rate-item.rate-up { border-color: var(--accent-green); background: rgba(0,255,136,0.05); }
+    .rate-item.rate-down { border-color: var(--accent-red); background: rgba(255,68,102,0.05); }
+    .rate-item .rate-name { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; }
+    .rate-item .rate-value { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; }
+    .rate-item .rate-change { font-size: 0.8rem; margin-top: 4px; }
+    .rate-item.rate-up .rate-change { color: var(--accent-green); }
+    .rate-item.rate-down .rate-change { color: var(--accent-red); }
+
+    .event-card {
+      background: var(--bg-dark);
+      border: 2px solid var(--accent-gold);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .event-title { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 10px; }
+
+    .players-panel { display: grid; gap: 12px; }
+
+    .player-panel-card {
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      transition: all 0.3s;
+    }
+
+    .player-panel-card.active-turn { border-color: var(--accent-gold); box-shadow: 0 0 20px rgba(255,215,0,0.2); }
+    .player-panel-card.me { border-color: var(--accent-blue); }
+    .player-panel-card.finished { opacity: 0.6; border-color: var(--accent-green); }
+
+    .player-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .player-panel-name { font-weight: 700; font-size: 0.95rem; }
+    .player-panel-tag { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; }
+    .tag-turn { background: rgba(255,215,0,0.15); color: var(--accent-gold); }
+    .tag-me { background: rgba(68,136,255,0.15); color: var(--accent-blue); }
+    .tag-done { background: rgba(0,255,136,0.15); color: var(--accent-green); }
+
+    .holdings-mini { display: flex; flex-wrap: wrap; gap: 6px; }
+    .holding-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+    }
+
+    .my-info-section { background: var(--bg-card); border: 2px solid var(--accent-blue); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
+    .my-info-section h3 { color: var(--accent-blue); font-size: 1.1rem; margin-bottom: 14px; }
+
+    .goal-progress { background: var(--bg-dark); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+    .progress-bar-wrap { background: var(--border); border-radius: 100px; height: 8px; margin-top: 8px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-green)); transition: width 0.5s; }
+
+    .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .action-buttons .end-btn { grid-column: 1 / -1; }
+
+    /* ── Turn Indicator ── */
+    .turn-banner {
+      text-align: center;
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      animation: pulse 2s infinite;
+    }
+    .turn-banner.my-turn { background: rgba(255,215,0,0.1); border: 2px solid var(--accent-gold); color: var(--accent-gold); }
+    .turn-banner.others-turn { background: rgba(136,146,176,0.1); border: 2px solid var(--border); color: var(--text-secondary); }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+    /* ── Modal ── */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .modal-title { font-family: 'Space Mono', monospace; font-size: 1.3rem; color: var(--accent-gold); margin-bottom: 20px; }
+    .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
+    .modal-buttons .btn { flex: 1; }
+
+    /* ── Notification ── */
+    .notif-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .notif {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      min-width: 280px;
+      max-width: 380px;
+      animation: slideIn 0.3s ease-out;
+      font-size: 0.9rem;
+    }
+    .notif.success { border-color: var(--accent-green); }
+    .notif.error { border-color: var(--accent-red); }
+    .notif.info { border-color: var(--accent-blue); }
+    .notif.event { border-color: var(--accent-gold); }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* ── Rankings ── */
+    .rank-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .rank-number { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; width: 50px; text-align: center; }
+    .rank-1 .rank-number { color: #ffd700; }
+    .rank-2 .rank-number { color: #c0c0c0; }
+    .rank-3 .rank-number { color: #cd7f32; }
+
+    .copy-hint { font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 4px; }
+
+    /* ── Chat ── */
+    .chat-box {
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      height: 180px;
+      overflow-y: auto;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .chat-msg { color: var(--text-secondary); }
+    .chat-msg .chat-name { color: var(--accent-gold); font-weight: 700; }
+    .chat-input-row { display: flex; gap: 8px; }
+    .chat-input-row input { margin-bottom: 0; flex: 1; }
+    .chat-input-row .btn { padding: 12px 18px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>💱 Kur Savaşları</h1>
+  <p class="subtitle">Multiplayer Online • 2–6 Oyuncu</p>
+
+  <!-- ── Bildirimler ── -->
+  <div class="notif-container" id="notifContainer"></div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- EKRAN 1: Ana Menü -->
+  <!-- ══════════════════════════════════════════ -->
+  <div id="screenHome" class="screen">
+    <div class="card" style="max-width:500px; margin: 0 auto;">
+      <label>Adınız</label>
+      <input type="text" id="playerNameInput" placeholder="Adınızı girin..." maxlength="20">
+    </div>
+    <div class="home-grid">
+      <div class="home-option" onclick="createRoom()">
+        <div class="icon">🏠</div>
+        <h3>Oda Oluştur</h3>
+        <p>Yeni oyun başlat, arkadaşlarını davet et</p>
+      </div>
+      <div class="home-option" onclick="showJoinScreen()">
+        <div class="icon">🚪</div>
+        <h3>Odaya Katıl</h3>
+        <p>Oda koduyla mevcut oyuna gir</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Oda Kodu Girme ── -->
+  <div id="screenJoin" class="screen hidden">
+    <div class="card" style="max-width:400px; margin: 0 auto;">
+      <h2 style="margin-bottom:20px; color: var(--accent-gold);">🚪 Odaya Katıl</h2>
+      <label>Oda Kodu</label>
+      <input type="text" id="joinCodeInput" placeholder="Örn: ABC123" maxlength="6" style="text-transform:uppercase; font-size: 1.5rem; letter-spacing: 4px; text-align:center;">
+      <div style="display:flex; gap:12px;">
+        <button class="btn btn-secondary" onclick="showHome()" style="flex:1;">← Geri</button>
+        <button class="btn" onclick="joinRoom()" style="flex:1;">Katıl</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- EKRAN 2: Lobi -->
+  <!-- ══════════════════════════════════════════ -->
+  <div id="screenLobby" class="screen hidden">
+    <div style="display:grid; grid-template-columns: 1fr 320px; gap:24px;">
+
+      <!-- Sol: Oda bilgisi -->
+      <div>
+        <div class="card">
+          <h2 style="margin-bottom: 4px;">🎮 Oyun Lobisi</h2>
+          <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom: 16px;">Arkadaşlarını davet etmek için oda kodunu paylaş</p>
+          <div class="room-code-display" id="lobbyRoomCode" onclick="copyRoomCode()">------</div>
+          <p class="copy-hint">Kopyalamak için tıkla</p>
+
+          <div style="margin-top: 20px;">
+            <h3 style="margin-bottom: 14px; color: var(--text-secondary); font-size:0.9rem; text-transform:uppercase;">Oyuncular (<span id="lobbyPlayerCount">0</span>/6)</h3>
+            <div class="players-list" id="lobbyPlayersList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom: 16px;">Kartlarınız</h3>
+          <div class="cards-preview">
+            <div class="card-preview-item start">
+              <div class="card-label">🎲 Başlangıç</div>
+              <div class="card-value" id="myStartingCard">—</div>
+            </div>
+            <div class="card-preview-item goal">
+              <div class="card-label">🎯 Hedef</div>
+              <div class="card-value" id="myGoalCard">—</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary" onclick="refreshCards()" style="width:100%;">🔄 Kartları Yenile</button>
+        </div>
+      </div>
+
+      <!-- Sağ: Hazır + chat -->
+      <div>
+        <div class="card">
+          <h3 style="margin-bottom: 16px;">Hazırlık</h3>
+          <button class="btn btn-green" id="readyBtn" onclick="toggleReady()" style="width:100%; margin-bottom:12px;">✓ Hazırım</button>
+          <button class="btn" id="startGameBtn" onclick="startGame()" style="width:100%; display:none;">🚀 Oyunu Başlat</button>
+          <p id="startHint" style="color:var(--text-secondary); font-size:0.85rem; text-align:center; margin-top:8px;"></p>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom: 12px;">💬 Lobi Sohbeti</h3>
+          <div class="chat-box" id="lobbyChat"></div>
+          <div class="chat-input-row">
+            <input type="text" id="lobbyChatInput" placeholder="Mesaj..." maxlength="100" onkeydown="if(event.key==='Enter')sendLobbyChat()">
+            <button class="btn" onclick="sendLobbyChat()">→</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- EKRAN 3: Oyun -->
+  <!-- ══════════════════════════════════════════ -->
+  <div id="screenGame" class="screen hidden">
+    <!-- Header Stats -->
+    <div class="game-header">
+      <div class="stat-box">
+        <div class="stat-label">⏱ Tur</div>
+        <div class="stat-value" id="gameRound">1</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">🎮 Sıra</div>
+        <div class="stat-value" id="gameCurrentPlayer" style="font-size:1rem;">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">👥 Aktif</div>
+        <div class="stat-value" id="gameActivePlayers">—</div>
+      </div>
+    </div>
+
+    <!-- Turn Banner -->
+    <div class="turn-banner" id="turnBanner">⏳ Sıra bekleniyor...</div>
+
+    <div class="game-main">
+      <!-- Sol: Ana oyun -->
+      <div>
+        <!-- Kurlar -->
+        <div class="card">
+          <h3 style="margin-bottom: 16px;">📊 Güncel Kurlar</h3>
+          <div class="rates-grid" id="gameRatesGrid"></div>
+        </div>
+
+        <!-- Olay Kartı -->
+        <div class="card">
+          <div class="event-card" id="gameEventCard">
+            <div class="event-title">Olay kartı bekleniyor...</div>
+          </div>
+        </div>
+
+        <!-- Benim bilgilerim -->
+        <div class="my-info-section">
+          <h3>👤 Sizin Durumunuz</h3>
+
+          <div class="goal-progress">
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+              <span style="color:var(--text-secondary);">🎯 Hedef:</span>
+              <span id="myGoalDisplay" style="color:var(--accent-blue); font-weight:700;">—</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-top:6px;">
+              <span style="color:var(--text-secondary);">Mevcut:</span>
+              <span id="myGoalProgress" style="font-weight:700; font-family:'Space Mono',monospace;">0</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="myProgressBar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:8px; text-transform:uppercase;">Cüzdanım</div>
+            <div id="myHoldings" class="holdings-mini"></div>
+          </div>
+
+          <div class="action-buttons" id="actionButtons">
+            <button class="btn" id="btnBuySell" onclick="openBuySellModal()">💱 Al / Sat</button>
+            <button class="btn btn-secondary" id="btnTrade" onclick="openTradeModal()">🤝 Takas</button>
+            <button class="btn btn-secondary" onclick="openPortfolioModal()">📈 Portföy</button>
+            <button class="btn btn-red end-btn" id="btnEndTurn" onclick="endTurn()">⏭ Turu Bitir</button>
+          </div>
+        </div>
+
+        <!-- Chat -->
+        <div class="card">
+          <h3 style="margin-bottom:12px;">💬 Oyun Sohbeti</h3>
+          <div class="chat-box" id="gameChat"></div>
+          <div class="chat-input-row">
+            <input type="text" id="gameChatInput" placeholder="Mesaj..." maxlength="100" onkeydown="if(event.key==='Enter')sendGameChat()">
+            <button class="btn" onclick="sendGameChat()">→</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sağ: Oyuncular -->
+      <div>
+        <div class="card">
+          <h3 style="margin-bottom:16px;">👥 Oyuncular</h3>
+          <div class="players-panel" id="gamePlayersPanel"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- EKRAN 4: Oyun Sonu -->
+  <!-- ══════════════════════════════════════════ -->
+  <div id="screenEnd" class="screen hidden">
+    <div class="card" style="max-width:700px; margin:0 auto;">
+      <h2 style="text-align:center; margin-bottom:30px; color:var(--accent-gold); font-family:'Space Mono',monospace;">🏆 Oyun Bitti!</h2>
+      <div id="rankingList"></div>
+      <div style="text-align:center; margin-top:24px;">
+        <button class="btn" onclick="location.reload()">🔄 Tekrar Oyna</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODALLER ══════════════════ -->
+
+<!-- Al/Sat Modal -->
+<div class="modal" id="buySellModal">
+  <div class="modal-content">
+    <div class="modal-title">💱 Al / Sat</div>
+    <label>İşlem Türü</label>
+    <select id="txType" onchange="calcExchange()">
+      <option value="buy">Satın Al</option>
+      <option value="sell">Sat</option>
+    </select>
+    <label id="txCurrencyLabel">Alınacak Para Birimi</label>
+    <select id="txCurrency" onchange="calcExchange()"></select>
+    <label id="txAmountLabel">Alınacak Miktar</label>
+    <input type="number" id="txAmount" min="0" step="0.01" oninput="calcExchange()">
+    <label id="txPayLabel">Ödeme Birimi</label>
+    <select id="txPayCurrency" onchange="calcExchange()"></select>
+    <label id="txPayAmountLabel">Ödenecek Miktar</label>
+    <input type="number" id="txPayAmount" readonly style="border-color:var(--accent-gold);">
+    <div id="txInfo" style="font-size:0.85rem; color:var(--text-secondary); padding:10px; background:var(--bg-dark); border-radius:8px; margin-top:4px;">Miktar girin...</div>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeBuySellModal()">İptal</button>
+      <button class="btn" onclick="executeBuySell()">İşlemi Yap</button>
+    </div>
+  </div>
+</div>
+
+<!-- Takas Modal -->
+<div class="modal" id="tradeModal">
+  <div class="modal-content">
+    <div class="modal-title">🤝 Oyuncu Takası</div>
+    <label>Takas Yapılacak Oyuncu</label>
+    <select id="tradePartner"></select>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div>
+        <label>Vereceğiniz Birim</label>
+        <select id="tradeGiveCurrency"></select>
+        <label>Verilecek Miktar</label>
+        <input type="number" id="tradeGiveAmount" min="0" step="0.01">
+      </div>
+      <div>
+        <label>Alacağınız Birim</label>
+        <select id="tradeReceiveCurrency"></select>
+        <label>Alınacak Miktar</label>
+        <input type="number" id="tradeReceiveAmount" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-secondary" onclick="closeTradeModal()">İptal</button>
+      <button class="btn" onclick="executeTrade()">Takas Yap</button>
+    </div>
+  </div>
+</div>
+
+<!-- Portföy Modal -->
+<div class="modal" id="portfolioModal">
+  <div class="modal-content" style="max-width:800px;">
+    <div class="modal-title">📈 Portföy Performansı</div>
+    <canvas id="portfolioChart" style="max-height:350px;"></canvas>
+    <div id="portfolioStats" style="display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-top:16px;"></div>
+    <div class="modal-buttons">
+      <button class="btn" onclick="closePortfolioModal()" style="width:100%;">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const socket = io();
+const CURRENCIES = ['TL', 'USD', 'EUR', 'ALTIN', 'STERLIN'];
+
+let mySocketId = null;
+let myName = '';
+let roomCode = '';
+let myPlayer = null;
+let gameStateData = null;
+let isReady = false;
+let portfolioChartInst = null;
+
+socket.on('connect', () => { mySocketId = socket.id; });
+
+// ─── Bildirim ───────────────────────────────────────────────────────────────
+function notify(msg, type = 'info', duration = 4000) {
+  const el = document.createElement('div');
+  el.className = `notif ${type}`;
+  el.innerHTML = msg;
+  document.getElementById('notifContainer').appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+// ─── Ekran Geçişleri ────────────────────────────────────────────────────────
+function showScreen(id) {
+  ['screenHome','screenJoin','screenLobby','screenGame','screenEnd'].forEach(s => {
+    document.getElementById(s).classList.add('hidden');
+  });
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function showHome() { showScreen('screenHome'); }
+function showJoinScreen() {
+  if (!getPlayerName()) return;
+  showScreen('screenJoin');
+}
+
+function getPlayerName() {
+  const name = document.getElementById('playerNameInput').value.trim();
+  if (!name) { notify('❗ Lütfen adınızı girin!', 'error'); return null; }
+  myName = name;
+  return name;
+}
+
+// ─── Oda İşlemleri ─────────────────────────────────────────────────────────
+function createRoom() {
+  const name = getPlayerName();
+  if (!name) return;
+  socket.emit('createRoom', { name });
+}
+
+function joinRoom() {
+  const name = myName || document.getElementById('playerNameInput').value.trim();
+  const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if (!name) { notify('❗ Adınızı girin!', 'error'); return; }
+  if (code.length !== 6) { notify('❗ 6 haneli oda kodu girin!', 'error'); return; }
+  myName = name;
+  socket.emit('joinRoom', { code, name });
+}
+
+function copyRoomCode() {
+  navigator.clipboard.writeText(roomCode).then(() => notify('📋 Oda kodu kopyalandı: ' + roomCode, 'success'));
+}
+
+function refreshCards() { socket.emit('refreshCards'); }
+
+function toggleReady() {
+  isReady = !isReady;
+  socket.emit('setReady', { ready: isReady });
+  const btn = document.getElementById('readyBtn');
+  btn.textContent = isReady ? '✗ Hazır Değilim' : '✓ Hazırım';
+  btn.className = isReady ? 'btn btn-red' : 'btn btn-green';
+}
+
+function startGame() { socket.emit('startGame'); }
+
+// ─── Socket Olayları: Lobi ─────────────────────────────────────────────────
+socket.on('roomCreated', ({ code, player }) => {
+  roomCode = code;
+  myPlayer = player;
+  showScreen('screenLobby');
+  document.getElementById('lobbyRoomCode').textContent = code;
+  renderMyCards(player.startingCard, player.goalCard);
+  document.getElementById('startGameBtn').style.display = 'block';
+  addChat('lobbyChat', '🏠 Oda oluşturuldu! Arkadaşlarını davet et.');
+});
+
+socket.on('joinedRoom', ({ code, player, players }) => {
+  roomCode = code;
+  myPlayer = player;
+  showScreen('screenLobby');
+  document.getElementById('lobbyRoomCode').textContent = code;
+  renderMyCards(player.startingCard, player.goalCard);
+  renderLobbyPlayers(players);
+  addChat('lobbyChat', '✅ Odaya katıldın!');
+});
+
+socket.on('playerJoined', ({ players }) => {
+  renderLobbyPlayers(players);
+  const me = players.find(p => p.socketId === mySocketId);
+  if (me) renderMyCards(me.startingCard, me.goalCard);
+});
+
+socket.on('playerLeft', ({ name, players }) => {
+  notify(`👋 ${name} lobiden ayrıldı`, 'info');
+  renderLobbyPlayers(players);
+});
+
+socket.on('cardsRefreshed', ({ startingCard, goalCard }) => {
+  myPlayer.startingCard = startingCard;
+  myPlayer.goalCard = goalCard;
+  renderMyCards(startingCard, goalCard);
+  notify('🔄 Kartlar yenilendi!', 'success');
+});
+
+socket.on('gameStarted', () => {
+  showScreen('screenGame');
+  notify('🎮 Oyun başladı!', 'success', 3000);
+});
+
+function renderMyCards(start, goal) {
+  document.getElementById('myStartingCard').textContent = `${start.amount.toLocaleString('tr-TR')} ${start.currency}`;
+  document.getElementById('myGoalCard').textContent = `${goal.amount.toLocaleString('tr-TR')} ${goal.currency}`;
+}
+
+function renderLobbyPlayers(players) {
+  document.getElementById('lobbyPlayerCount').textContent = players.length;
+  const host = players.find(p => p.isHost);
+  const allReady = players.every(p => p.isHost || p.ready);
+
+  document.getElementById('lobbyPlayersList').innerHTML = players.map(p => `
+    <div class="lobby-player ${p.ready || p.isHost ? 'ready' : ''} ${p.isHost ? 'host' : ''}">
+      <span class="lobby-player-name">${p.isHost ? '👑 ' : ''}${p.name}</span>
+      <span class="lobby-player-status ${p.isHost ? 'status-host' : p.ready ? 'status-ready' : 'status-waiting'}">
+        ${p.isHost ? 'Oda Sahibi' : p.ready ? 'Hazır ✓' : 'Bekleniyor...'}
+      </span>
+    </div>
+  `).join('');
+
+  const startBtn = document.getElementById('startGameBtn');
+  const hint = document.getElementById('startHint');
+  if (startBtn.style.display !== 'none') {
+    if (players.length < 2) {
+      startBtn.disabled = true;
+      hint.textContent = 'En az 2 oyuncu gerekli';
+    } else if (!allReady) {
+      startBtn.disabled = true;
+      hint.textContent = 'Tüm oyuncuların hazır olmasını bekle';
+    } else {
+      startBtn.disabled = false;
+      hint.textContent = '';
+    }
+  }
+}
+
+// ─── Chat ──────────────────────────────────────────────────────────────────
+function addChat(boxId, msg, sender) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  const el = document.createElement('div');
+  el.className = 'chat-msg';
+  el.innerHTML = sender ? `<span class="chat-name">${sender}:</span> ${msg}` : `<span style="color:var(--text-secondary);">${msg}</span>`;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+function sendLobbyChat() {
+  const inp = document.getElementById('lobbyChatInput');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  socket.emit('chat', { room: roomCode, msg, name: myName });
+  inp.value = '';
+}
+
+function sendGameChat() {
+  const inp = document.getElementById('gameChatInput');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  socket.emit('chat', { room: roomCode, msg, name: myName });
+  inp.value = '';
+}
+
+socket.on('chatMsg', ({ name, msg }) => {
+  addChat('lobbyChat', msg, name);
+  addChat('gameChat', msg, name);
+});
+
+// ─── Socket Olayları: Oyun ─────────────────────────────────────────────────
+socket.on('gameState', (data) => {
+  gameStateData = data;
+  myPlayer = data.myPlayer;
+  renderGameState(data);
+});
+
+socket.on('ratesApplied', ({ event, rateChangeLog, rates, lastRateChanges }) => {
+  let msg = `⚡ <b>${event.name}</b><br>`;
+  rateChangeLog.forEach(c => {
+    const sign = c.change > 0 ? '+' : '';
+    const color = c.change > 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    msg += `<span style="color:${color}">${c.currency}: ${c.old.toFixed(2)} → ${c.new.toFixed(2)} (${sign}${c.change.toFixed(1)}%)</span><br>`;
+  });
+  notify(msg, 'event', 7000);
+});
+
+socket.on('playerFinished', ({ playerName, rank }) => {
+  const medals = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'];
+  notify(`${medals[rank-1]} <b>${playerName}</b> hedefine ulaştı! (${rank}. sıra)`, 'success', 6000);
+});
+
+socket.on('playerDisconnected', ({ name }) => {
+  notify(`⚠️ ${name} bağlantısı kesildi`, 'error');
+});
+
+socket.on('gameOver', ({ ranking, rates }) => {
+  showScreen('screenEnd');
+  const medals = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'];
+  document.getElementById('rankingList').innerHTML = ranking.map((p, i) => `
+    <div class="rank-card rank-${i+1}">
+      <div class="rank-number">${medals[i]}</div>
+      <div>
+        <div style="font-weight:700; font-size:1.1rem;">${p.name}</div>
+        <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">
+          Hedef: ${p.goalCard.amount.toLocaleString('tr-TR')} ${p.goalCard.currency} |
+          ${p.finishRound ? `Tur ${p.finishRound}'de tamamladı` : 'Tamamlayamadı'}
+        </div>
+        <div style="font-size:0.85rem; margin-top:4px; font-family:'Space Mono',monospace; color:var(--accent-gold);">
+          Son: ${(p.holdings[p.goalCard.currency]||0).toFixed(2)} ${p.goalCard.currency}
+        </div>
+      </div>
+    </div>
+  `).join('');
+});
+
+socket.on('error', (msg) => notify('❗ ' + msg, 'error'));
+socket.on('transactionOk', ({ holdings }) => {
+  myPlayer.holdings = holdings;
+  notify('✅ İşlem başarılı!', 'success');
+  closeBuySellModal();
+});
+socket.on('tradeOk', ({ giveCurrency, giveAmount, receiveCurrency, receiveAmount, partnerName }) => {
+  notify(`✅ ${partnerName} ile takas tamam! -${giveAmount.toFixed(2)} ${giveCurrency} / +${receiveAmount.toFixed(2)} ${receiveCurrency}`, 'success');
+  closeTradeModal();
+});
+
+// ─── Oyun Render ────────────────────────────────────────────────────────────
+function renderGameState(data) {
+  const { round, rates, lastRateChanges, currentEvent, isMyTurn, currentPlayerName, players, myPlayer: mp } = data;
+
+  document.getElementById('gameRound').textContent = round;
+  document.getElementById('gameCurrentPlayer').textContent = currentPlayerName || '—';
+  document.getElementById('gameActivePlayers').textContent = players.filter(p => !p.finished).length + '/' + players.length;
+
+  // Turn banner
+  const banner = document.getElementById('turnBanner');
+  if (isMyTurn) {
+    banner.className = 'turn-banner my-turn';
+    banner.textContent = '⚡ Sıra SİZDE! Hamlenizi yapın.';
+  } else {
+    banner.className = 'turn-banner others-turn';
+    banner.textContent = `⏳ ${currentPlayerName} oynuyor...`;
+  }
+
+  // Rates
+  const ratesGrid = document.getElementById('gameRatesGrid');
+  ratesGrid.innerHTML = CURRENCIES.map(c => {
+    const change = lastRateChanges[c];
+    const cls = change > 0 ? 'rate-up' : change < 0 ? 'rate-down' : '';
+    const icon = change > 0 ? '📈' : change < 0 ? '📉' : '';
+    return `
+      <div class="rate-item ${cls}">
+        <div class="rate-name">${c}</div>
+        <div class="rate-value">${c === 'TL' ? '1.00' : rates[c]?.toFixed(2) || '—'} ₺</div>
+        ${change !== undefined ? `<div class="rate-change">${icon} ${change > 0 ? '+' : ''}${change.toFixed(1)}%</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  // Event
+  if (currentEvent) {
+    document.getElementById('gameEventCard').innerHTML = `
+      <div class="event-title">⚡ Olay: ${currentEvent.name}</div>
+      <div style="margin-top:10px; font-size:0.9rem; color:var(--text-secondary);">
+        Etkilenen: ${currentEvent.affectedCurrencies.map(c => `<b style="color:var(--accent-gold)">${c}</b>`).join(', ')} &nbsp;|&nbsp;
+        Risk: <b style="color:var(--accent-red)">±${currentEvent.riskFactor}%</b>
+      </div>
+      <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:8px;">
+        💡 Kurlar tur sonunda değişecek — tüm oyuncular hamlesini yaptıktan sonra!
+      </div>
+    `;
+  }
+
+  // My info
+  if (mp) {
+    const goalHolding = (mp.holdings[mp.goalCard.currency] || 0);
+    const progress = Math.min(100, (goalHolding / mp.goalCard.amount) * 100);
+    document.getElementById('myGoalDisplay').textContent = `${mp.goalCard.amount.toLocaleString('tr-TR')} ${mp.goalCard.currency}`;
+    document.getElementById('myGoalProgress').textContent = `${goalHolding.toFixed(2)} ${mp.goalCard.currency}`;
+    document.getElementById('myProgressBar').style.width = progress + '%';
+
+    document.getElementById('myHoldings').innerHTML = CURRENCIES
+      .filter(c => (mp.holdings[c] || 0) > 0.001)
+      .map(c => `<div class="holding-chip">${mp.holdings[c].toFixed(2)} <b>${c}</b></div>`)
+      .join('');
+
+    // Action buttons
+    const isMy = isMyTurn;
+    document.getElementById('btnBuySell').disabled = !isMy || mp.madeTransaction;
+    document.getElementById('btnTrade').disabled = !isMy || mp.madeTrade;
+    document.getElementById('btnEndTurn').disabled = !isMy;
+    document.getElementById('actionButtons').style.opacity = isMy ? '1' : '0.5';
+  }
+
+  // Players panel
+  document.getElementById('gamePlayersPanel').innerHTML = players.map(p => {
+    const isActive = data.currentPlayerSocketId === p.socketId;
+    const isMe = p.socketId === mySocketId;
+    return `
+      <div class="player-panel-card ${isActive ? 'active-turn' : ''} ${isMe ? 'me' : ''} ${p.finished ? 'finished' : ''}">
+        <div class="player-panel-header">
+          <span class="player-panel-name">${isMe ? '👤 ' : ''}${p.name}</span>
+          <span class="player-panel-tag ${isActive ? 'tag-turn' : isMe ? 'tag-me' : p.finished ? 'tag-done' : ''}">
+            ${p.finished ? '✅ Bitti' : isActive ? 'Oynuyor' : isMe ? 'Sen' : ''}
+          </span>
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:6px;">
+          🎯 ${p.goalCard.amount.toLocaleString('tr-TR')} ${p.goalCard.currency}
+          &nbsp;|&nbsp; ${((p.holdings[p.goalCard.currency]||0) / p.goalCard.amount * 100).toFixed(0)}%
+        </div>
+        <div class="holdings-mini">
+          ${CURRENCIES.filter(c => (p.holdings[c]||0) > 0.001).map(c =>
+            `<div class="holding-chip">${p.holdings[c].toFixed(1)} <b>${c}</b></div>`
+          ).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── Al/Sat Modal ────────────────────────────────────────────────────────────
+function openBuySellModal() {
+  if (!gameStateData?.isMyTurn) return notify('Sıra sizde değil!', 'error');
+  if (myPlayer?.madeTransaction) return notify('Bu turda zaten işlem yaptınız!', 'error');
+
+  const rates = gameStateData.rates;
+  const holdings = myPlayer.holdings;
+
+  const tradable = CURRENCIES.filter(c => c !== 'TL');
+  document.getElementById('txCurrency').innerHTML = tradable.map(c => `<option value="${c}">${c} (Bakiye: ${(holdings[c]||0).toFixed(2)})</option>`).join('');
+  document.getElementById('txPayCurrency').innerHTML = CURRENCIES.map(c => `<option value="${c}">${c} (Bakiye: ${(holdings[c]||0).toFixed(2)})</option>`).join('');
+
+  document.getElementById('txType').value = 'buy';
+  document.getElementById('txAmount').value = '';
+  document.getElementById('txPayAmount').value = '';
+  calcExchange();
+  document.getElementById('buySellModal').classList.add('active');
+}
+
+function closeBuySellModal() { document.getElementById('buySellModal').classList.remove('active'); }
+
+function calcExchange() {
+  const type = document.getElementById('txType').value;
+  const tCurr = document.getElementById('txCurrency').value;
+  const tAmt = parseFloat(document.getElementById('txAmount').value);
+  const pCurr = document.getElementById('txPayCurrency').value;
+  const rates = gameStateData?.rates || {};
+
+  document.getElementById('txCurrencyLabel').textContent = type === 'buy' ? 'Alınacak Para Birimi' : 'Satılacak Para Birimi';
+  document.getElementById('txAmountLabel').textContent = type === 'buy' ? 'Alınacak Miktar' : 'Satılacak Miktar';
+  document.getElementById('txPayLabel').textContent = type === 'buy' ? 'Ödeme Birimi' : 'Alınacak Birim';
+  document.getElementById('txPayAmountLabel').textContent = type === 'buy' ? 'Ödenecek Miktar' : 'Alınacak Miktar';
+
+  if (!tAmt || !tCurr || !pCurr || !rates[tCurr] || !rates[pCurr]) {
+    document.getElementById('txPayAmount').value = '';
+    document.getElementById('txInfo').textContent = 'Miktar girin...';
+    return;
+  }
+
+  const payAmt = (tAmt * rates[tCurr]) / rates[pCurr];
+  document.getElementById('txPayAmount').value = payAmt.toFixed(4);
+
+  const holdings = myPlayer?.holdings || {};
+  const canDo = type === 'buy' ? (holdings[pCurr]||0) >= payAmt : (holdings[tCurr]||0) >= tAmt;
+  const statusColor = canDo ? 'var(--accent-green)' : 'var(--accent-red)';
+  document.getElementById('txInfo').innerHTML = `
+    Kur: 1 ${tCurr} = ${(rates[tCurr]/rates[pCurr]).toFixed(4)} ${pCurr}<br>
+    <span style="color:${statusColor}">${canDo ? '✓ Yeterli bakiye' : '✗ Yetersiz bakiye'}</span>
+  `;
+}
+
+function executeBuySell() {
+  const type = document.getElementById('txType').value;
+  const targetCurrency = document.getElementById('txCurrency').value;
+  const targetAmount = parseFloat(document.getElementById('txAmount').value);
+  const paymentCurrency = document.getElementById('txPayCurrency').value;
+
+  if (!targetAmount || targetAmount <= 0) return notify('Geçersiz miktar!', 'error');
+  if (targetCurrency === paymentCurrency) return notify('Aynı para birimi seçilemez!', 'error');
+
+  socket.emit('buySell', { type, targetCurrency, targetAmount, paymentCurrency });
+}
+
+// ─── Takas Modal ─────────────────────────────────────────────────────────────
+function openTradeModal() {
+  if (!gameStateData?.isMyTurn) return notify('Sıra sizde değil!', 'error');
+  if (myPlayer?.madeTrade) return notify('Bu turda zaten takas yaptınız!', 'error');
+
+  const others = gameStateData.players.filter(p => p.socketId !== mySocketId && !p.finished);
+  if (!others.length) return notify('Takas yapılacak oyuncu yok!', 'error');
+
+  document.getElementById('tradePartner').innerHTML = others.map(p => `<option value="${p.socketId}">${p.name}</option>`).join('');
+  updateTradeCurrencies();
+  document.getElementById('tradeModal').classList.add('active');
+}
+
+function updateTradeCurrencies() {
+  const holdings = myPlayer?.holdings || {};
+  const partnerSocketId = document.getElementById('tradePartner').value;
+  const partner = gameStateData?.players.find(p => p.socketId === partnerSocketId);
+  const partnerHoldings = partner?.holdings || {};
+
+  document.getElementById('tradeGiveCurrency').innerHTML = CURRENCIES
+    .filter(c => (holdings[c]||0) > 0)
+    .map(c => `<option value="${c}">${c} (${(holdings[c]||0).toFixed(2)})</option>`).join('');
+
+  document.getElementById('tradeReceiveCurrency').innerHTML = CURRENCIES
+    .filter(c => (partnerHoldings[c]||0) > 0)
+    .map(c => `<option value="${c}">${c} (${(partnerHoldings[c]||0).toFixed(2)})</option>`).join('');
+}
+
+document.getElementById('tradePartner')?.addEventListener('change', updateTradeCurrencies);
+
+function closeTradeModal() { document.getElementById('tradeModal').classList.remove('active'); }
+
+function executeTrade() {
+  const targetSocketId = document.getElementById('tradePartner').value;
+  const giveCurrency = document.getElementById('tradeGiveCurrency').value;
+  const giveAmount = parseFloat(document.getElementById('tradeGiveAmount').value);
+  const receiveCurrency = document.getElementById('tradeReceiveCurrency').value;
+  const receiveAmount = parseFloat(document.getElementById('tradeReceiveAmount').value);
+
+  if (!giveAmount || !receiveAmount || giveAmount <= 0 || receiveAmount <= 0) return notify('Geçersiz miktarlar!', 'error');
+  socket.emit('playerTrade', { targetSocketId, giveCurrency, giveAmount, receiveCurrency, receiveAmount });
+}
+
+// ─── Portföy Modal ───────────────────────────────────────────────────────────
+function openPortfolioModal() {
+  const history = myPlayer?.portfolioHistory || [];
+  if (history.length < 2) return notify('Henüz yeterli veri yok!', 'info');
+
+  const labels = history.map(h => `Tur ${h.round}`);
+  const data = history.map(h => h.value);
+  const start = data[0], curr = data[data.length - 1];
+  const change = curr - start;
+  const pct = ((change / start) * 100).toFixed(2);
+
+  document.getElementById('portfolioStats').innerHTML = [
+    ['Başlangıç', start.toFixed(0) + ' ₺', ''],
+    ['Şu Anki', curr.toFixed(0) + ' ₺', change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'],
+    [`${change >= 0 ? '+' : ''}${pct}%`, 'Değişim', change >= 0 ? 'var(--accent-green)' : 'var(--accent-red)']
+  ].map(([label, val, color]) => `
+    <div style="background:var(--bg-dark); padding:12px; border-radius:8px; text-align:center;">
+      <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">${label}</div>
+      <div style="font-family:'Space Mono',monospace; font-size:1.1rem; font-weight:700; ${color ? 'color:'+color : ''}">${val}</div>
+    </div>
+  `).join('');
+
+  if (portfolioChartInst) portfolioChartInst.destroy();
+  const ctx = document.getElementById('portfolioChart').getContext('2d');
+  portfolioChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Portföy (₺)',
+        data,
+        borderColor: change >= 0 ? '#00ff88' : '#ff4466',
+        backgroundColor: change >= 0 ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,102,0.1)',
+        borderWidth: 3, tension: 0.4, fill: true,
+        pointRadius: 5, pointBackgroundColor: '#ffd700'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#fff' } } },
+      scales: {
+        y: { ticks: { color: '#8892b0', callback: v => v.toFixed(0) + ' ₺' }, grid: { color: 'rgba(42,63,95,0.3)' } },
+        x: { ticks: { color: '#8892b0' }, grid: { color: 'rgba(42,63,95,0.3)' } }
+      }
+    }
+  });
+
+  document.getElementById('portfolioModal').classList.add('active');
+}
+
+function closePortfolioModal() { document.getElementById('portfolioModal').classList.remove('active'); }
+
+// ─── Tur Bitir ───────────────────────────────────────────────────────────────
+function endTurn() {
+  if (!gameStateData?.isMyTurn) return notify('Sıra sizde değil!', 'error');
+  socket.emit('endTurn');
+}
+</script>
+</body>
+</html>
