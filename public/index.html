@@ -521,9 +521,12 @@ socket.on('chatMsg', ({ name, msg }) => {
 
 // ── Timer ──────────────────────────────────────────────────────────────────────
 let timerEnd = null;
+let lastCurrentPlayerSocketId = null; // kimin sırası olduğunu takip et
+
 function startClientTimer(ms) {
-  timerEnd = Date.now() + ms;
+  // Önceki interval'ı temizle
   if (timerInterval) clearInterval(timerInterval);
+  timerEnd = Date.now() + ms;
   timerInterval = setInterval(() => {
     const rem = Math.max(0, timerEnd - Date.now());
     const secs = Math.ceil(rem / 1000);
@@ -540,7 +543,12 @@ function startClientTimer(ms) {
 socket.on('gameState', (data) => {
   gsd = data; myPlayer = data.myPlayer;
   renderGame(data);
-  startClientTimer(data.timerRemaining || 60000);
+
+  // Sadece sıra değiştiğinde timer'ı yeniden başlat
+  if (data.currentPlayerSocketId !== lastCurrentPlayerSocketId) {
+    lastCurrentPlayerSocketId = data.currentPlayerSocketId;
+    startClientTimer(60000); // her yeni sıra için 60 saniyeyi baştan başlat
+  }
 });
 
 socket.on('ratesApplied', ({ event, rateChangeLog, rates, lastRateChanges }) => {
