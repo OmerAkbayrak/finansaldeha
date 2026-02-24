@@ -2,8 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kur Savaşları 🌐 Multiplayer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kur Savaşları — Multiplayer</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <style>
@@ -17,19 +17,22 @@ h1{font-family:'Space Mono',monospace;font-size:2.6rem;font-weight:900;text-alig
 .subtitle{text-align:center;color:var(--txt2);margin-bottom:32px;font-size:.95rem}
 .card{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px}
 label{display:block;color:var(--txt2);margin-bottom:6px;font-size:.8rem;text-transform:uppercase;letter-spacing:1px}
-input,select{width:100%;padding:11px;background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--txt);font-size:.95rem;font-family:'Outfit',sans-serif;margin-bottom:14px;transition:all .3s}
+input,select{width:100%;padding:11px;background:var(--bg);border:2px solid var(--border);border-radius:8px;color:var(--txt);font-size:.95rem;font-family:'Outfit',sans-serif;margin-bottom:14px;transition:border-color .3s}
 input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,215,0,.1)}
 .btn{background:linear-gradient(135deg,var(--gold),#ffed4e);color:var(--bg);border:none;padding:13px 32px;font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-radius:50px;cursor:pointer;transition:all .3s;font-family:'Space Mono',monospace;box-shadow:0 4px 20px rgba(255,215,0,.3)}
-.btn:hover{transform:translateY(-2px);box-shadow:0 6px 30px rgba(255,215,0,.5)}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 30px rgba(255,215,0,.5)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-sec{background:var(--bg);color:var(--txt);border:2px solid var(--border);box-shadow:none}
-.btn-sec:hover{border-color:var(--gold)}
+.btn-sec:hover:not(:disabled){border-color:var(--gold)}
 .btn-red{background:linear-gradient(135deg,var(--red),#ff6688);color:#fff;box-shadow:0 4px 20px rgba(255,68,102,.3)}
-.btn-green{background:linear-gradient(135deg,var(--green),#00cc66);color:var(--bg)}
-.btn-blue{background:linear-gradient(135deg,var(--blue),#66aaff);color:#fff}
+.btn-green{background:linear-gradient(135deg,var(--green),#00cc66);color:var(--bg);box-shadow:none}
+.btn-blue{background:linear-gradient(135deg,var(--blue),#66aaff);color:#fff;box-shadow:none}
+.btn-purple{background:linear-gradient(135deg,#9b59b6,#c39bd3);color:#fff;box-shadow:none}
 .hidden{display:none!important}
 .screen{animation:fadeIn .4s ease-out}
 @keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Ana menü ── */
 .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:640px;margin:32px auto 0}
 .home-opt{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .3s}
 .home-opt:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 12px 40px rgba(255,215,0,.2)}
@@ -37,25 +40,26 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
 .home-opt h3{font-size:1.2rem;margin-bottom:6px;color:var(--gold)}
 .home-opt p{font-size:.85rem;color:var(--txt2)}
 @media(max-width:520px){.home-grid{grid-template-columns:1fr}}
+
+/* ── Lobi ── */
 .lobby-wrap{display:grid;grid-template-columns:1fr 300px;gap:20px}
 @media(max-width:800px){.lobby-wrap{grid-template-columns:1fr}}
-.room-code-box{font-family:'Space Mono',monospace;font-size:2.8rem;font-weight:700;text-align:center;letter-spacing:8px;color:var(--gold);background:var(--bg);border:3px dashed var(--gold);border-radius:12px;padding:18px;margin:16px 0;cursor:pointer;transition:all .3s}
+.room-code-box{font-family:'Space Mono',monospace;font-size:2.8rem;font-weight:700;text-align:center;letter-spacing:8px;color:var(--gold);background:var(--bg);border:3px dashed var(--gold);border-radius:12px;padding:18px;margin:16px 0;cursor:pointer;transition:background .3s}
 .room-code-box:hover{background:rgba(255,215,0,.05)}
 .copy-hint{font-size:.75rem;color:var(--txt2);text-align:center;margin-top:4px}
 .lobby-player{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;transition:border-color .3s}
 .lobby-player.ready{border-color:var(--green)}.lobby-player.host{border-color:var(--gold)}
 .lp-name{font-weight:700;font-size:1rem}
 .lp-badge{font-size:.75rem;padding:3px 10px;border-radius:20px;font-weight:600}
-.badge-host{background:rgba(255,215,0,.15);color:var(--gold)}
-.badge-ready{background:rgba(0,255,136,.15);color:var(--green)}
-.badge-wait{background:rgba(136,146,176,.15);color:var(--txt2)}
+.badge-host{background:rgba(255,215,0,.15);color:var(--gold)}.badge-ready{background:rgba(0,255,136,.15);color:var(--green)}.badge-wait{background:rgba(136,146,176,.15);color:var(--txt2)}
 .cards-preview{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
 .cp-item{padding:14px;border-radius:10px;text-align:center}
-.cp-start{background:var(--bg);border:2px solid var(--gold)}
-.cp-goal{background:var(--bg);border:2px solid var(--blue)}
+.cp-start{background:var(--bg);border:2px solid var(--gold)}.cp-goal{background:var(--bg);border:2px solid var(--blue)}
 .cp-label{font-size:.75rem;color:var(--txt2);text-transform:uppercase;margin-bottom:6px}
 .cp-val{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700}
 .cp-start .cp-val{color:var(--gold)}.cp-goal .cp-val{color:var(--blue)}
+
+/* ── Oyun ── */
 .game-header{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
 @media(max-width:700px){.game-header{grid-template-columns:repeat(2,1fr)}}
 .stat-box{background:var(--card);border:2px solid var(--border);border-radius:12px;padding:14px;text-align:center}
@@ -70,94 +74,103 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
 .timer-wrap{background:var(--border);border-radius:100px;height:6px;margin-bottom:16px;overflow:hidden}
 .timer-bar{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--green),var(--gold));transition:width .5s linear}
 .timer-bar.urgent{background:linear-gradient(90deg,var(--red),#ff8844)}
-/* 6 birim: 3+3 */
-.rates-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px}
+
+/* ── Kur grid (6 sütun) ── */
+.rates-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:4px}
 @media(max-width:900px){.rates-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:480px){.rates-grid{grid-template-columns:repeat(2,1fr)}}
-.rate-item{background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;transition:all .4s;cursor:pointer;position:relative}
+.rate-item{background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .4s;position:relative;overflow:hidden}
 .rate-item:hover{border-color:var(--gold);transform:translateY(-2px)}
 .rate-item.up{border-color:var(--green);background:rgba(0,255,136,.05)}
 .rate-item.down{border-color:var(--red);background:rgba(255,68,102,.05)}
-.rate-item.boom{border-color:#ff9900;background:rgba(255,153,0,.12);animation:boomPulse .8s ease-in-out 4}
-@keyframes boomPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,153,0,.5)}50%{box-shadow:0 0 24px 10px rgba(255,153,0,.4)}}
-.rate-name{font-size:.72rem;color:var(--txt2);margin-bottom:3px;text-transform:uppercase}
-.rate-val{font-family:'Space Mono',monospace;font-size:.95rem;font-weight:700}
+.rate-item.boom{border-color:#ff9900!important;background:rgba(255,153,0,.12);animation:boomPulse .7s ease-in-out 5}
+@keyframes boomPulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 22px 8px rgba(255,153,0,.45)}}
+.rate-name{font-size:.72rem;color:var(--txt2);margin-bottom:4px;text-transform:uppercase;font-weight:600}
+.rate-val{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700}
 .rate-chg{font-size:.72rem;margin-top:3px}
-.rate-item.up .rate-chg{color:var(--green)}
-.rate-item.down .rate-chg{color:var(--red)}
-.rate-item.boom .rate-chg{color:#ff9900;font-weight:900}
+.rate-item.up .rate-chg{color:var(--green)}.rate-item.down .rate-chg{color:var(--red)}.rate-item.boom .rate-chg{color:#ff9900;font-weight:900}
 .click-hint{font-size:.6rem;color:var(--txt2);margin-top:2px}
-.boom-badge{position:absolute;top:-8px;right:-8px;background:#ff9900;color:#000;font-size:.58rem;font-weight:900;padding:2px 6px;border-radius:10px}
-.event-card{background:var(--bg);border:2px solid var(--gold);border-radius:12px;padding:18px;margin-bottom:18px}
+.boom-badge{position:absolute;top:-1px;right:-1px;background:#ff9900;color:#000;font-size:.58rem;font-weight:900;padding:2px 6px;border-radius:0 8px 0 6px}
+
+/* ── Olay ── */
+.event-card{background:var(--bg);border:2px solid var(--gold);border-radius:12px;padding:16px}
 .event-title{font-family:'Space Mono',monospace;font-size:.92rem;font-weight:700;color:var(--gold);margin-bottom:8px}
+
+/* ── Benim durumum ── */
 .my-info{background:var(--card);border:2px solid var(--blue);border-radius:16px;padding:18px;margin-bottom:20px}
-.my-info h3{color:var(--blue);font-size:1rem;margin-bottom:12px}
+.my-info h3{color:var(--blue);margin-bottom:12px}
 .goal-bar-wrap{background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px}
 .goal-bar-bg{background:var(--border);border-radius:100px;height:8px;margin-top:8px;overflow:hidden}
 .goal-bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .5s}
 .holdings-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.holding-chip{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-family:'Space Mono',monospace;font-size:.75rem}
-.holding-chip.silver-chip{border-color:var(--silver);color:var(--silver)}
+.chip{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-family:'Space Mono',monospace;font-size:.75rem}
+.chip.silver{border-color:var(--silver);color:var(--silver)}
 .action-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .action-btns .end-btn{grid-column:1/-1}
 .credit-info{font-size:.8rem;color:var(--red);margin-top:8px;padding:8px;background:rgba(255,68,102,.08);border-radius:6px;border:1px solid rgba(255,68,102,.3)}
-.pp-card{background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;transition:all .3s}
-.pp-card.active{border-color:var(--gold);box-shadow:0 0 20px rgba(255,215,0,.2)}
+
+/* ── Oyuncular ── */
+.pp-card{background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;transition:border-color .3s,box-shadow .3s}
+.pp-card.active{border-color:var(--gold);box-shadow:0 0 18px rgba(255,215,0,.2)}
 .pp-card.me{border-color:var(--blue)}.pp-card.done{opacity:.6;border-color:var(--green)}.pp-card.elim{opacity:.4;border-style:dashed}
 .pp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .pp-name{font-weight:700;font-size:.9rem}
 .pp-tag{font-size:.7rem;padding:2px 8px;border-radius:20px}
-.tag-turn{background:rgba(255,215,0,.15);color:var(--gold)}.tag-me{background:rgba(68,136,255,.15);color:var(--blue)}
-.tag-done{background:rgba(0,255,136,.15);color:var(--green)}.tag-elim{background:rgba(255,68,102,.15);color:var(--red)}
+.tag-turn{background:rgba(255,215,0,.15);color:var(--gold)}.tag-me{background:rgba(68,136,255,.15);color:var(--blue)}.tag-done{background:rgba(0,255,136,.15);color:var(--green)}.tag-elim{background:rgba(255,68,102,.15);color:var(--red)}
 .pp-goal{font-size:.75rem;color:var(--txt2);margin-bottom:6px}
 .pp-holdings{display:flex;flex-wrap:wrap;gap:4px}
 .pp-chip{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-family:'Space Mono',monospace;font-size:.7rem}
-.chat-box{background:var(--bg);border:2px solid var(--border);border-radius:10px;height:160px;overflow-y:auto;padding:10px;margin-bottom:8px;font-size:.82rem;display:flex;flex-direction:column;gap:3px}
-.chat-msg{line-height:1.4}
-.chat-name{font-weight:700;color:var(--gold)}.chat-sys{color:var(--txt2);font-style:italic}
+
+/* ── Chat ── */
+.chat-box{background:var(--bg);border:2px solid var(--border);border-radius:10px;height:160px;overflow-y:auto;padding:10px;margin-bottom:8px;font-size:.82rem;display:flex;flex-direction:column;gap:3px;scroll-behavior:smooth}
+.chat-msg{line-height:1.4}.chat-name{font-weight:700;color:var(--gold)}.chat-sys{color:var(--txt2);font-style:italic}
 .chat-input-row{display:flex;gap:8px}
 .chat-input-row input{margin-bottom:0;flex:1}
 .chat-input-row .btn{padding:11px 16px;border-radius:8px;font-size:.85rem}
-.notif-wrap{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.notif{background:var(--card);border:2px solid var(--border);border-radius:10px;padding:12px 16px;min-width:260px;max-width:360px;animation:slideIn .3s ease-out;font-size:.85rem;pointer-events:auto}
+
+/* ── Bildirimler ── */
+.notif-wrap{position:fixed;top:16px;right:16px;z-index:9990;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.notif{background:var(--card);border:2px solid var(--border);border-radius:10px;padding:12px 16px;min-width:260px;max-width:380px;animation:slideIn .3s ease-out;font-size:.85rem;pointer-events:auto;word-break:break-word}
 .notif.ok{border-color:var(--green)}.notif.err{border-color:var(--red)}.notif.info{border-color:var(--blue)}.notif.ev{border-color:var(--gold)}
-.notif.boom-notif{border-color:#ff9900;background:rgba(20,25,53,.97)}
 @keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Modaller ── */
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:1000;align-items:center;justify-content:center;padding:16px}
 .modal.active{display:flex}
-.modal-inner{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:26px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:fadeIn .3s ease-out}
+.modal-inner{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:26px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;animation:fadeIn .3s ease-out}
 .modal-title{font-family:'Space Mono',monospace;font-size:1.2rem;color:var(--gold);margin-bottom:18px}
-.modal-btns{display:flex;gap:10px;margin-top:18px}
-.modal-btns .btn{flex:1}
+.modal-btns{display:flex;gap:10px;margin-top:18px}.modal-btns .btn{flex:1}
+
+/* ── Oyun sonu ── */
 .rank-card{display:flex;align-items:center;gap:14px;background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
 .rank-num{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;width:44px;text-align:center}
 .r1 .rank-num{color:#ffd700}.r2 .rank-num{color:#c0c0c0}.r3 .rank-num{color:#cd7f32}
-.rate-modal-inner{max-width:700px}
-/* BOOM */
-#boomOverlay{display:none;position:fixed;inset:0;z-index:99997;pointer-events:none}
+
+/* ── BOOM ── */
+#boomOverlay{display:none;position:fixed;inset:0;z-index:9995;pointer-events:none}
 #boomOverlay.show{display:block}
-#boomMsgBox{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;text-align:center;pointer-events:none;animation:boomPop .5s ease-out}
-#boomMsgBox.show{display:block}
-@keyframes boomPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}70%{transform:translate(-50%,-50%) scale(1.08)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-#boomMsgBox h2{font-family:'Space Mono',monospace;font-size:2.2rem;font-weight:900;color:#ff9900;text-shadow:0 0 40px #ff6600;line-height:1.2}
-#boomMsgBox p{font-size:1.1rem;color:#fff;margin-top:10px;text-shadow:0 2px 8px #000}
-#confettiCanvas{position:fixed;inset:0;z-index:99998;pointer-events:none;display:none}
+#boomBox{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9998;text-align:center;pointer-events:none}
+#boomBox.show{display:block;animation:boomPop .5s ease-out}
+@keyframes boomPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}70%{transform:translate(-50%,-50%) scale(1.1)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+#boomBox h2{font-family:'Space Mono',monospace;font-size:2.4rem;font-weight:900;color:#ff9900;text-shadow:0 0 40px #ff6600;line-height:1.2}
+#boomBox p{font-size:1.1rem;color:#fff;margin-top:10px;text-shadow:0 2px 8px #000}
+#confetti{position:fixed;inset:0;z-index:9996;pointer-events:none;display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>💱 Kur Savaşları</h1>
-  <p class="subtitle">Multiplayer Online • 2–6 Oyuncu</p>
+  <p class="subtitle">Multiplayer • 2–6 Oyuncu</p>
   <div class="notif-wrap" id="notifWrap"></div>
   <div id="boomOverlay"></div>
-  <div id="boomMsgBox"></div>
-  <canvas id="confettiCanvas"></canvas>
+  <div id="boomBox"></div>
+  <canvas id="confetti"></canvas>
 
   <!-- Ana Menü -->
   <div id="sHome" class="screen">
     <div class="card" style="max-width:460px;margin:0 auto">
       <label>Adınız</label>
-      <input type="text" id="nameInput" placeholder="İsim girin..." maxlength="20">
+      <input type="text" id="nameInput" placeholder="İsim girin..." maxlength="20" onkeydown="if(event.key==='Enter')createRoom()">
     </div>
     <div class="home-grid">
       <div class="home-opt" onclick="createRoom()"><div class="icon">🏠</div><h3>Oda Oluştur</h3><p>Yeni oyun başlat</p></div>
@@ -170,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
     <div class="card" style="max-width:380px;margin:0 auto">
       <h2 style="margin-bottom:16px;color:var(--gold)">🚪 Odaya Katıl</h2>
       <label>Oda Kodu</label>
-      <input type="text" id="joinCode" placeholder="6 haneli kod" maxlength="6" style="text-transform:uppercase;font-size:1.4rem;letter-spacing:4px;text-align:center">
+      <input type="text" id="joinCode" placeholder="6 haneli kod" maxlength="6" style="text-transform:uppercase;font-size:1.4rem;letter-spacing:4px;text-align:center" onkeydown="if(event.key==='Enter')joinRoom()">
       <div style="display:flex;gap:10px">
         <button class="btn btn-sec" onclick="showScreen('sHome')" style="flex:1">← Geri</button>
         <button class="btn" onclick="joinRoom()" style="flex:1">Katıl</button>
@@ -233,14 +246,14 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
     <div class="game-main">
       <div>
         <div class="card">
-          <h3 style="margin-bottom:14px">📊 Güncel Kurlar <span style="font-size:.72rem;color:var(--txt2)">(grafiği görmek için tıkla)</span></h3>
+          <h3 style="margin-bottom:12px">📊 Güncel Kurlar <span style="font-size:.72rem;color:var(--txt2)">(tıkla → grafik)</span></h3>
           <div class="rates-grid" id="ratesGrid"></div>
         </div>
-        <div class="card">
+        <div class="card" style="padding-bottom:18px">
           <div class="event-card" id="eventCard"><div class="event-title">Olay kartı bekleniyor...</div></div>
         </div>
         <div class="my-info">
-          <h3>👤 Sizin Durumunuz</h3>
+          <h3>👤 Durumunuz</h3>
           <div class="goal-bar-wrap">
             <div style="display:flex;justify-content:space-between;font-size:.82rem">
               <span style="color:var(--txt2)">🎯 Hedef:</span><span id="myGoalDisp" style="color:var(--blue);font-weight:700">—</span>
@@ -252,7 +265,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
           </div>
           <div class="holdings-row" id="myHoldings"></div>
           <div id="creditInfo"></div>
-          <div class="action-btns" id="actionBtns">
+          <div class="action-btns">
             <button class="btn" id="btnBuySell" onclick="openBuySell()">💱 Al / Sat</button>
             <button class="btn btn-blue" id="btnCredit" onclick="takeCredit()">💳 Kredi Çek</button>
             <button class="btn btn-sec" onclick="openPortfolio()">📈 Portföy</button>
@@ -260,10 +273,10 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
           </div>
         </div>
         <div class="card">
-          <h3 style="margin-bottom:10px">💬 Oyun Sohbeti</h3>
+          <h3 style="margin-bottom:10px">💬 Oyun Sohbeti <span style="font-size:.72rem;color:var(--txt2)">/omer → para ver</span></h3>
           <div class="chat-box" id="gameChat"></div>
           <div class="chat-input-row">
-            <input type="text" id="gameChatIn" placeholder="Mesaj..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat('game')">
+            <input type="text" id="gameChatIn" placeholder="Mesaj veya /omer..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat('game')">
             <button class="btn" onclick="sendChat('game')">→</button>
           </div>
         </div>
@@ -287,25 +300,25 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
   </div>
 </div>
 
-<!-- Al/Sat Modal -->
+<!-- Al/Sat -->
 <div class="modal" id="buySellModal">
   <div class="modal-inner">
     <div class="modal-title">💱 Al / Sat</div>
     <label>İşlem Türü</label>
     <select id="txType" onchange="calcEx()"><option value="buy">Satın Al</option><option value="sell">Sat</option></select>
-    <label id="txCurrLbl">Alınacak Para Birimi</label><select id="txCurr" onchange="calcEx()"></select>
-    <label id="txAmtLbl">Alınacak Miktar</label><input type="number" id="txAmt" min="0" step="0.01" oninput="calcEx()">
+    <label id="txCurrLbl">Para Birimi</label><select id="txCurr" onchange="calcEx()"></select>
+    <label id="txAmtLbl">Miktar</label><input type="number" id="txAmt" min="0" step="0.01" oninput="calcEx()">
     <label id="txPayLbl">Ödeme Birimi</label><select id="txPay" onchange="calcEx()"></select>
-    <label id="txPayAmtLbl">Ödenecek Miktar</label><input type="number" id="txPayAmt" readonly style="border-color:var(--gold)">
+    <label id="txPayAmtLbl">Ödenecek</label><input type="number" id="txPayAmt" readonly style="border-color:var(--gold)">
     <div id="txInfo" style="font-size:.82rem;color:var(--txt2);padding:9px;background:var(--bg);border-radius:8px;margin-top:4px">Miktar girin...</div>
     <div class="modal-btns">
       <button class="btn btn-sec" onclick="closeModal('buySellModal')">İptal</button>
-      <button class="btn" onclick="execBuySell()">İşlemi Yap</button>
+      <button class="btn" onclick="execBuySell()">İşlem Yap</button>
     </div>
   </div>
 </div>
 
-<!-- Portföy Modal -->
+<!-- Portföy -->
 <div class="modal" id="portfolioModal">
   <div class="modal-inner" style="max-width:740px">
     <div class="modal-title">📈 Portföy Performansı</div>
@@ -315,24 +328,23 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
   </div>
 </div>
 
-<!-- Kur Grafiği Modal -->
+<!-- Kur Grafiği -->
 <div class="modal" id="rateChartModal">
-  <div class="modal-inner rate-modal-inner">
+  <div class="modal-inner" style="max-width:700px">
     <div class="modal-title" id="rateChartTitle">📊 Kur Grafiği</div>
     <canvas id="rateChart" style="max-height:340px"></canvas>
     <div class="modal-btns"><button class="btn" onclick="closeModal('rateChartModal')" style="width:100%">Kapat</button></div>
   </div>
 </div>
 
-<!-- Admin Panel -->
+<!-- Admin -->
 <div class="modal" id="adminModal">
   <div class="modal-inner" style="max-width:340px;border-color:var(--red)">
     <div class="modal-title" style="color:var(--red)">🔐 Admin Paneli</div>
-    <p style="font-size:.82rem;color:var(--txt2);margin-bottom:14px">Sadece sen görürsün.</p>
     <label>Para Birimi</label>
     <select id="adminCurr">
-      <option value="TL">TL</option><option value="USD">USD</option><option value="EUR">EUR</option>
-      <option value="ALTIN">ALTIN</option><option value="GUMUS">GÜMÜŞ</option><option value="STERLIN">STERLIN</option>
+      <option>TL</option><option>USD</option><option>EUR</option>
+      <option>ALTIN</option><option value="GUMUS">GÜMÜŞ</option><option>STERLIN</option>
     </select>
     <label>Miktar</label>
     <input type="number" id="adminAmt" placeholder="50000" min="1">
@@ -343,56 +355,58 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
   </div>
 </div>
 
-<!-- /omer Para Verme Paneli -->
+<!-- Para Ver (/omer) -->
 <div class="modal" id="giveModal">
   <div class="modal-inner" style="max-width:360px;border-color:#9b59b6">
-    <div class="modal-title" style="color:#9b59b6">💸 Para Ver <span style="font-size:.75rem;color:var(--txt2)">/omer</span></div>
-    <p style="font-size:.82rem;color:var(--txt2);margin-bottom:14px">İstediğin oyuncuya para ekle.</p>
-    <label>Oyuncu</label>
-    <select id="givePlayers"></select>
+    <div class="modal-title" style="color:#9b59b6">💸 Para Ver</div>
+    <label>Oyuncu</label><select id="givePlayers"></select>
     <label>Para Birimi</label>
     <select id="giveCurr">
-      <option value="TL">TL</option><option value="USD">USD</option><option value="EUR">EUR</option>
-      <option value="ALTIN">ALTIN</option><option value="GUMUS">GÜMÜŞ</option><option value="STERLIN">STERLIN</option>
+      <option>TL</option><option>USD</option><option>EUR</option>
+      <option>ALTIN</option><option value="GUMUS">GÜMÜŞ</option><option>STERLIN</option>
     </select>
     <label>Miktar</label>
     <input type="number" id="giveAmt" placeholder="10000" min="1">
     <div class="modal-btns">
       <button class="btn btn-sec" onclick="closeModal('giveModal')">İptal</button>
-      <button class="btn" style="background:linear-gradient(135deg,#9b59b6,#c39bd3);color:#fff" onclick="execGive()">💸 Gönder</button>
+      <button class="btn btn-purple" onclick="execGive()">💸 Gönder</button>
     </div>
   </div>
 </div>
 
 <script>
 const socket = io();
+
+// Para birimi etiketleri — sade, bayrak/birim eki yok
+const CLBL = { TL:'TL', USD:'USD', EUR:'EUR', ALTIN:'ALTIN', GUMUS:'GÜMÜŞ', STERLIN:'Sterlin' };
 const CURRENCIES = ['TL','USD','EUR','ALTIN','GUMUS','STERLIN'];
-const CLBL = { TL:'TL 🇹🇷', USD:'USD 🇺🇸', EUR:'EUR 🇪🇺', ALTIN:'ALTIN 🥇', GUMUS:'GÜMÜŞ 🥈', STERLIN:'GBP 🇬🇧' };
 
-let myId=null,myName='',roomCode='',myPlayer=null,gsd=null;
-let isReady=false,portfolioChartInst=null,rateChartInst=null;
-let timerInterval=null,lastCurrentPlayerSocketId=null;
+let myId=null, myName='', roomCode='', myPlayer=null, gsd=null;
+let isReady=false, pChartInst=null, rChartInst=null;
+let tmrInterval=null, lastCurSid=null, lastRound=null;
 
-socket.on('connect',()=>{ myId=socket.id; });
+socket.on('connect', ()=>{ myId=socket.id; });
 
-function notify(msg,type='info',dur=4000){
+// ── Bildirim ─────────────────────────────────────────────────────────────────
+function notify(msg, type='info', dur=4000) {
   const el=document.createElement('div');
   el.className='notif '+type; el.innerHTML=msg;
   document.getElementById('notifWrap').appendChild(el);
-  setTimeout(()=>el.remove(),dur);
+  setTimeout(()=>el.remove(), dur);
 }
 
-function showScreen(id){
+// ── Ekran ─────────────────────────────────────────────────────────────────────
+function showScreen(id) {
   ['sHome','sJoin','sLobby','sGame','sEnd'].forEach(s=>document.getElementById(s).classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
-function getMyName(){
+function getMyName() {
   const n=document.getElementById('nameInput').value.trim();
   if(!n){notify('❗ Adınızı girin!','err');return null;}
-  myName=n; return n;
+  return (myName=n);
 }
 function goJoin(){if(!getMyName())return;showScreen('sJoin');}
-function createRoom(){const name=getMyName();if(!name)return;socket.emit('createRoom',{name});}
+function createRoom(){const n=getMyName();if(!n)return;socket.emit('createRoom',{name:n});}
 function joinRoom(){
   const name=myName||document.getElementById('nameInput').value.trim();
   const code=document.getElementById('joinCode').value.trim().toUpperCase();
@@ -400,37 +414,40 @@ function joinRoom(){
   if(code.length!==6){notify('❗ 6 haneli kod girin!','err');return;}
   myName=name; socket.emit('joinRoom',{code,name});
 }
-function copyCode(){navigator.clipboard.writeText(roomCode).then(()=>notify('📋 Kod kopyalandı: '+roomCode,'ok'));}
+function copyCode(){navigator.clipboard.writeText(roomCode).then(()=>notify('📋 Kopyalandı: '+roomCode,'ok'));}
 function refreshCards(){socket.emit('refreshCards');}
 function toggleReady(){
   isReady=!isReady; socket.emit('setReady',{ready:isReady});
-  const btn=document.getElementById('readyBtn');
-  btn.textContent=isReady?'✗ Hazır Değilim':'✓ Hazırım';
-  btn.className=isReady?'btn btn-red':'btn btn-green';
+  const b=document.getElementById('readyBtn');
+  b.textContent=isReady?'✗ Hazır Değilim':'✓ Hazırım';
+  b.className=isReady?'btn btn-red':'btn btn-green';
 }
 function startGame(){socket.emit('startGame');}
 
+// ── Lobi ──────────────────────────────────────────────────────────────────────
 socket.on('roomCreated',({code,player})=>{
   roomCode=code; myPlayer=player;
   document.getElementById('lobbyCode').textContent=code;
-  renderMyCards(player.startingCard,player.goalCard);
+  renderMyCards(player.startingCard, player.goalCard);
   document.getElementById('startBtn').style.display='block';
   showScreen('sLobby');
-  addChat('lobbyChat',null,'🏠 Oda oluşturuldu!',true);
+  addChat('lobbyChat',null,'🏠 Oda oluşturuldu! Kodu paylaş.',true);
 });
 socket.on('joinedRoom',({code,player,players})=>{
   roomCode=code; myPlayer=player;
   document.getElementById('lobbyCode').textContent=code;
-  renderMyCards(player.startingCard,player.goalCard);
+  renderMyCards(player.startingCard, player.goalCard);
   renderLobbyPlayers(players); showScreen('sLobby');
 });
 socket.on('playerJoined',({players})=>{
   renderLobbyPlayers(players);
   const me=players.find(p=>p.socketId===myId);
-  if(me)renderMyCards(me.startingCard,me.goalCard);
+  if(me) renderMyCards(me.startingCard, me.goalCard);
 });
-socket.on('cardsRefreshed',({startingCard,goalCard})=>{renderMyCards(startingCard,goalCard);notify('🔄 Kartlar yenilendi!','ok');});
-socket.on('gameStarted',()=>{showScreen('sGame');notify('🎮 Oyun başladı!','ok');});
+socket.on('cardsRefreshed',({startingCard,goalCard})=>{
+  renderMyCards(startingCard,goalCard); notify('🔄 Kartlar yenilendi!','ok');
+});
+socket.on('gameStarted',()=>{ showScreen('sGame'); notify('🎮 Oyun başladı!','ok'); });
 
 function renderMyCards(s,g){
   document.getElementById('myStart').textContent=`${s.amount.toLocaleString('tr-TR')} ${CLBL[s.currency]||s.currency}`;
@@ -438,167 +455,159 @@ function renderMyCards(s,g){
 }
 function renderLobbyPlayers(players){
   document.getElementById('lobbyCount').textContent=players.length;
-  const all=players.filter(p=>!p.isHost).every(p=>p.ready);
+  const allReady=players.filter(p=>!p.isHost).every(p=>p.ready);
   document.getElementById('lobbyList').innerHTML=players.map(p=>`
     <div class="lobby-player ${p.isHost?'host':p.ready?'ready':''}">
       <span class="lp-name">${p.isHost?'👑 ':''}${p.name}</span>
       <span class="lp-badge ${p.isHost?'badge-host':p.ready?'badge-ready':'badge-wait'}">${p.isHost?'Oda Sahibi':p.ready?'Hazır ✓':'Bekleniyor'}</span>
     </div>`).join('');
-  const sb=document.getElementById('startBtn'),sh=document.getElementById('startHint');
+  const sb=document.getElementById('startBtn'), sh=document.getElementById('startHint');
   if(sb.style.display!=='none'){
     if(players.length<2){sb.disabled=true;sh.textContent='En az 2 oyuncu gerekli';}
-    else if(!all){sb.disabled=true;sh.textContent='Tüm oyuncular hazır olmalı';}
+    else if(!allReady){sb.disabled=true;sh.textContent='Tüm oyuncular hazır olmalı';}
     else{sb.disabled=false;sh.textContent='';}
   }
 }
 
+// ── Chat ──────────────────────────────────────────────────────────────────────
 function addChat(boxId,sender,msg,sys=false){
-  const box=document.getElementById(boxId);if(!box)return;
-  const el=document.createElement('div');el.className='chat-msg';
+  const box=document.getElementById(boxId); if(!box)return;
+  const el=document.createElement('div'); el.className='chat-msg';
   el.innerHTML=(sys||!sender)?`<span class="chat-sys">${msg}</span>`:`<span class="chat-name">${sender}:</span> ${msg}`;
-  box.appendChild(el);box.scrollTop=box.scrollHeight;
+  box.appendChild(el); box.scrollTop=box.scrollHeight;
 }
 function sendChat(ctx){
   const inp=document.getElementById(ctx==='lobby'?'lobbyChatIn':'gameChatIn');
-  const msg=inp.value.trim();if(!msg)return;
-  socket.emit('chat',{msg});inp.value='';
+  const msg=inp.value.trim(); if(!msg)return;
+  socket.emit('chat',{msg}); inp.value='';
 }
 socket.on('chatMsg',({name,msg})=>{
-  const isSys=name.includes('Sistem')||name.includes('🎮')||name.includes('🏦')||name.includes('🏆')||name.includes('⏰')||name.includes('🚀')||name.includes('💰');
-  addChat('lobbyChat',isSys?null:name,msg,isSys);
-  addChat('gameChat',isSys?null:name,msg,isSys);
+  const sys=name.includes('Sistem')||name.includes('🎮')||name.includes('🏦')||
+             name.includes('🏆')||name.includes('⏰')||name.includes('🚀')||name.includes('💰');
+  addChat('lobbyChat', sys?null:name, msg, sys);
+  addChat('gameChat',  sys?null:name, msg, sys);
 });
 
-// /omer paneli
-socket.on('openGivePanel',({players})=>{
-  const sel=document.getElementById('givePlayers');
-  if(!sel)return;
-  sel.innerHTML=players.map(p=>`<option value="${p.socketId}">${p.name}</option>`).join('');
-  document.getElementById('giveModal').classList.add('active');
-});
-socket.on('giveOk',({targetName,currency,amount})=>{
-  notify(`✅ ${targetName} oyuncusuna ${amount.toLocaleString('tr-TR')} ${CLBL[currency]||currency} eklendi.`,'ok',4000);
-  closeModal('giveModal');
-});
-
-// Timer
-let timerEnd=null;
+// ── Timer (client) ────────────────────────────────────────────────────────────
+let tmrEnd=null;
 function startClientTimer(ms){
-  if(timerInterval)clearInterval(timerInterval);
-  timerEnd=Date.now()+ms;
-  timerInterval=setInterval(()=>{
-    const rem=Math.max(0,timerEnd-Date.now());
-    const secs=Math.ceil(rem/1000);
-    document.getElementById('gTimer').textContent=secs+'s';
+  if(tmrInterval)clearInterval(tmrInterval);
+  tmrEnd=Date.now()+ms;
+  tmrInterval=setInterval(()=>{
+    const rem=Math.max(0,tmrEnd-Date.now());
+    document.getElementById('gTimer').textContent=Math.ceil(rem/1000)+'s';
     const pct=(rem/60000)*100;
     const bar=document.getElementById('timerBar');
     bar.style.width=pct+'%';
     bar.className='timer-bar'+(pct<25?' urgent':'');
-    if(rem<=0)clearInterval(timerInterval);
+    if(rem<=0)clearInterval(tmrInterval);
   },200);
 }
 
-socket.on('gameState',(data)=>{
-  const prevPlayer=lastCurrentPlayerSocketId;
-  const prevRound=gsd?.round;
+// ── Oyun State ────────────────────────────────────────────────────────────────
+socket.on('gameState', data=>{
   gsd=data; myPlayer=data.myPlayer;
   renderGame(data);
-  // Sıra değişti VEYA round değişti → timer yenile
-  if(data.currentPlayerSocketId!==prevPlayer || data.round!==prevRound){
-    lastCurrentPlayerSocketId=data.currentPlayerSocketId;
-    startClientTimer(data.timerRemaining || 60000);
+  // Sıra değişti veya round değişti → timer yenile
+  if(data.curSid!==lastCurSid || data.round!==lastRound){
+    lastCurSid=data.curSid; lastRound=data.round;
+    startClientTimer(data.timerMs||60000);
   }
 });
 
-socket.on('ratesApplied',({event,rateChangeLog})=>{
-  let txt=`⚡ <b>${event.name}</b><br>`;
-  rateChangeLog.forEach(c=>{
+socket.on('ratesApplied',({event,changeLog})=>{
+  if(!changeLog||changeLog.length===0)return;
+  let txt=`⚡ <b>${event?.name||'Olay'}</b><br>`;
+  changeLog.forEach(c=>{
     const col=c.change>0?'var(--green)':'var(--red)';
-    txt+=`<span style="color:${col}">${CLBL[c.currency]||c.currency}: ${c.old.toFixed(2)}→${c.new.toFixed(2)} ₺ (${c.change>0?'+':''}${c.change.toFixed(1)}%)</span><br>`;
+    const sign=c.change>0?'+':'';
+    txt+=`<span style="color:${col}">${CLBL[c.currency]||c.currency}: ${c.old.toFixed(2)}→${c.new.toFixed(2)} ₺ (${sign}${c.change.toFixed(1)}%)</span><br>`;
   });
-  notify(txt,'ev',7000);
+  notify(txt,'ev',8000);
 });
 
 socket.on('playerFinished',({playerName,rank})=>{
   const m=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'];
-  notify(`${m[rank-1]} <b>${playerName}</b> hedefine ulaştı!`,'ok',6000);
+  notify(`${m[rank-1]||rank+'.'} <b>${playerName}</b> hedefine ulaştı!`,'ok',6000);
 });
 socket.on('playerEliminated',({playerName,reason})=>notify(`💀 <b>${playerName}</b> elendi! ${reason}`,'err',6000));
 socket.on('creditOk',({amount,dueRound,holdings})=>{
-  myPlayer.holdings=holdings;
+  if(myPlayer)myPlayer.holdings=holdings;
   notify(`💳 ${amount.toLocaleString('tr-TR')} TL kredi alındı. Geri ödeme: Tur ${dueRound}`,'info',5000);
 });
-socket.on('transactionOk',({holdings})=>{ myPlayer.holdings=holdings; notify('✅ İşlem başarılı!','ok'); closeModal('buySellModal'); });
-socket.on('adminOk',({currency,amount,newBalance})=>notify(`🔐 +${Number(amount).toLocaleString('tr-TR')} ${CLBL[currency]||currency} eklendi.`,'ok',5000));
-socket.on('playerDisconnected',({name})=>notify(`⚠️ ${name} bağlantısı kesildi`,'err'));
+socket.on('transactionOk',({holdings})=>{
+  if(myPlayer)myPlayer.holdings=holdings;
+  notify('✅ İşlem başarılı!','ok');
+  closeModal('buySellModal');
+});
+socket.on('adminOk',({currency,amount,newBalance})=>notify(`🔐 +${Number(amount).toLocaleString('tr-TR')} ${CLBL[currency]||currency} eklendi.`,'ok',4000));
 socket.on('error',msg=>notify('❗ '+msg,'err'));
 
-// ── BOOM ─────────────────────────────────────────────────────────────────────
-socket.on('boom',({currency,oldVal,newVal})=>{
-  launchBoom(currency,oldVal,newVal);
+// /omer
+socket.on('openGivePanel',({players})=>{
+  document.getElementById('givePlayers').innerHTML=players.map(p=>`<option value="${p.socketId}">${p.name}</option>`).join('');
+  document.getElementById('giveModal').classList.add('active');
+});
+socket.on('giveOk',({targetName,currency,amount})=>{
+  notify(`✅ ${targetName} → ${amount.toLocaleString('tr-TR')} ${CLBL[currency]||currency}`,'ok',4000);
+  closeModal('giveModal');
 });
 
-function launchBoom(currency,oldVal,newVal){
+// ── BOOM ──────────────────────────────────────────────────────────────────────
+socket.on('boom',({currency,oldVal,newVal})=>{
   const lbl=CLBL[currency]||currency;
-  // Mesaj kutusu
-  const box=document.getElementById('boomMsgBox');
-  box.innerHTML=`<h2>🚀💥 AŞIRI YÜKSELİŞ!</h2><p>${lbl}<br><span style="font-size:.9rem">${oldVal.toFixed(2)} ₺ → <span style="color:#ff9900;font-weight:900;font-size:1.2rem">${newVal.toFixed(2)} ₺</span></span><br><span style="color:#ffcc00">+%50 tek turda!</span></p>`;
-  box.className='boom-msg show';
+  const box=document.getElementById('boomBox');
+  box.innerHTML=`<h2>🚀💥 AŞIRI YÜKSELİŞ!</h2><p>${lbl}<br>${oldVal.toFixed(2)} ₺ → <span style="color:#ff9900;font-size:1.3rem;font-weight:900">${newVal.toFixed(2)} ₺</span><br><span style="color:#ffcc00">+%50 tek turda!</span></p>`;
+  box.className='show';
   document.getElementById('boomOverlay').className='show';
   startConfetti();
-  setTimeout(()=>{
-    box.className='boom-msg';
-    document.getElementById('boomOverlay').className='';
-    stopConfetti();
-  },4500);
-}
+  setTimeout(()=>{ box.className=''; document.getElementById('boomOverlay').className=''; stopConfetti(); },4500);
+});
 
-let confettiRAF=null;
-const CCOLORS=['#ff9900','#ffd700','#ff4466','#00ff88','#4488ff','#ff66ff','#fff','#00ccff'];
+let cRAF=null;
+const CCOLS=['#ff9900','#ffd700','#ff4466','#00ff88','#4488ff','#ff66ff','#fff','#00ccff'];
 function startConfetti(){
-  const cvs=document.getElementById('confettiCanvas');
-  cvs.style.display='block';
-  cvs.width=window.innerWidth; cvs.height=window.innerHeight;
+  const cvs=document.getElementById('confetti');
+  cvs.style.display='block'; cvs.width=window.innerWidth; cvs.height=window.innerHeight;
   const ctx=cvs.getContext('2d');
-  const pieces=Array.from({length:180},()=>({
+  const ps=Array.from({length:200},()=>({
     x:Math.random()*cvs.width, y:Math.random()*cvs.height-cvs.height,
     w:7+Math.random()*12, h:4+Math.random()*7,
-    color:CCOLORS[Math.floor(Math.random()*CCOLORS.length)],
-    rot:Math.random()*360, rotS:(Math.random()-.5)*9,
-    vy:2+Math.random()*4, vx:(Math.random()-.5)*3, alpha:1
+    color:CCOLS[Math.floor(Math.random()*CCOLS.length)],
+    rot:Math.random()*360, rs:(Math.random()-.5)*9,
+    vy:2+Math.random()*4, vx:(Math.random()-.5)*3, a:1
   }));
   function draw(){
     ctx.clearRect(0,0,cvs.width,cvs.height);
-    pieces.forEach(p=>{
-      ctx.save(); ctx.globalAlpha=p.alpha;
-      ctx.translate(p.x+p.w/2,p.y+p.h/2);
-      ctx.rotate(p.rot*Math.PI/180);
-      ctx.fillStyle=p.color;
-      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    ps.forEach(p=>{
+      ctx.save(); ctx.globalAlpha=p.a;
+      ctx.translate(p.x+p.w/2,p.y+p.h/2); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
       ctx.restore();
-      p.x+=p.vx; p.y+=p.vy; p.rot+=p.rotS;
-      if(p.y>cvs.height*.65)p.alpha-=0.016;
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.rs;
+      if(p.y>cvs.height*.6)p.a-=0.015;
     });
-    confettiRAF=requestAnimationFrame(draw);
+    cRAF=requestAnimationFrame(draw);
   }
   draw();
 }
 function stopConfetti(){
-  if(confettiRAF){cancelAnimationFrame(confettiRAF);confettiRAF=null;}
-  const cvs=document.getElementById('confettiCanvas');
+  if(cRAF){cancelAnimationFrame(cRAF);cRAF=null;}
+  const cvs=document.getElementById('confetti');
   cvs.style.display='none';
   cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height);
 }
 
+// Oyun sonu
 socket.on('gameOver',({ranking})=>{
-  if(timerInterval)clearInterval(timerInterval);
+  if(tmrInterval)clearInterval(tmrInterval);
   showScreen('sEnd');
   const m=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'];
   document.getElementById('rankList').innerHTML=ranking.map((p,i)=>`
     <div class="rank-card r${i+1}">
-      <div class="rank-num">${m[i]||(i+1)+'.'}</div>
+      <div class="rank-num">${m[i]||i+1+'.'}</div>
       <div>
-        <div style="font-weight:700;font-size:1.05rem">${p.name} ${p.eliminated?'<span style="color:var(--red);font-size:.8rem">(elendi)</span>':''}</div>
+        <div style="font-weight:700;font-size:1.05rem">${p.name}${p.eliminated?' <span style="color:var(--red);font-size:.8rem">(elendi)</span>':''}</div>
         <div style="font-size:.82rem;color:var(--txt2);margin-top:4px">
           Hedef: ${p.goalCard.amount.toLocaleString('tr-TR')} ${CLBL[p.goalCard.currency]||p.goalCard.currency} |
           ${p.finishRound&&!p.eliminated?`Tur ${p.finishRound}'de tamamladı`:'Tamamlayamadı'}
@@ -610,40 +619,43 @@ socket.on('gameOver',({ranking})=>{
     </div>`).join('');
 });
 
+// ── Render ────────────────────────────────────────────────────────────────────
 function renderGame(data){
-  const{round,rates,lastRateChanges,currentEvent,isMyTurn,currentPlayerName,players,myPlayer:mp}=data;
+  const {round,rates,lastChanges,event,isMyTurn,curName,curSid,players,myPlayer:mp} = data;
+
   document.getElementById('gRound').textContent=round;
-  document.getElementById('gCurPlayer').textContent=currentPlayerName||'—';
+  document.getElementById('gCurPlayer').textContent=curName||'—';
   document.getElementById('gActive').textContent=players.filter(p=>!p.finished).length+'/'+players.length;
+
   const banner=document.getElementById('turnBanner');
   if(isMyTurn){banner.className='turn-banner turn-my';banner.textContent='⚡ Sıra SİZDE! Hamlenizi yapın.';}
-  else{banner.className='turn-banner turn-other';banner.textContent=`⏳ ${currentPlayerName} oynuyor...`;}
+  else{banner.className='turn-banner turn-other';banner.textContent=`⏳ ${curName||'?'} oynuyor...`;}
 
   // Kurlar
   document.getElementById('ratesGrid').innerHTML=CURRENCIES.map(c=>{
-    const chg=lastRateChanges[c];
+    const chg=lastChanges?.[c];
     const isBoom=chg>=45;
     const cls=isBoom?'boom':chg>0?'up':chg<0?'down':'';
     const icon=isBoom?'🚀':chg>0?'📈':chg<0?'📉':'';
-    const isGram=(c==='ALTIN'||c==='GUMUS');
+    const val=c==='TL'?'1.00':(rates[c]||0).toFixed(2);
     return `<div class="rate-item ${cls}" onclick="showRateChart('${c}')">
       ${isBoom?'<span class="boom-badge">BOOM!</span>':''}
       <div class="rate-name">${CLBL[c]||c}</div>
-      <div class="rate-val">${c==='TL'?'1.00':(rates[c]||0).toFixed(2)} ₺${isGram?'/gr':''}</div>
-      ${chg!==undefined?`<div class="rate-chg">${icon} ${chg>0?'+':''}${chg.toFixed(1)}%</div>`:''}
+      <div class="rate-val">${val} ₺</div>
+      ${chg!=null?`<div class="rate-chg">${icon} ${chg>0?'+':''}${chg.toFixed(1)}%</div>`:''}
       <div class="click-hint">grafik</div>
     </div>`;
   }).join('');
 
   // Olay
-  if(currentEvent){
+  if(event){
     document.getElementById('eventCard').innerHTML=`
-      <div class="event-title">⚡ ${currentEvent.name}</div>
+      <div class="event-title">⚡ ${event.name}</div>
       <div style="font-size:.85rem;color:var(--txt2);margin-top:8px">
-        Etkilenen: ${currentEvent.affectedCurrencies.map(c=>`<b style="color:var(--gold)">${CLBL[c]||c}</b>`).join(', ')} &nbsp;|&nbsp;
-        Risk: <b style="color:var(--red)">±${currentEvent.riskFactor}%</b>
+        Etkilenen: ${event.affected.map(c=>`<b style="color:var(--gold)">${CLBL[c]||c}</b>`).join(', ')} &nbsp;|&nbsp;
+        Risk: <b style="color:var(--red)">±${event.risk}%</b>
       </div>
-      <div style="font-size:.78rem;color:var(--txt2);margin-top:5px">💡 Kurlar tur sonunda değişecek. Her turda %1 ihtimalle BOOM!</div>`;
+      <div style="font-size:.78rem;color:var(--txt2);margin-top:5px">💡 Kurlar tur sonunda uygulanır. Her turda %1 ihtimalle BOOM!</div>`;
   }
 
   // Benim bilgilerim
@@ -653,48 +665,49 @@ function renderGame(data){
     document.getElementById('myGoalDisp').textContent=`${mp.goalCard.amount.toLocaleString('tr-TR')} ${CLBL[mp.goalCard.currency]||mp.goalCard.currency}`;
     document.getElementById('myGoalProg').textContent=`${goalH.toFixed(2)} ${CLBL[mp.goalCard.currency]||mp.goalCard.currency}`;
     document.getElementById('myProgBar').style.width=prog+'%';
-    document.getElementById('myHoldings').innerHTML=CURRENCIES.filter(c=>(mp.holdings[c]||0)>0.001)
-      .map(c=>`<div class="holding-chip ${c==='GUMUS'?'silver-chip':''}">${mp.holdings[c].toFixed(2)} <b>${CLBL[c]||c}</b></div>`).join('');
+    document.getElementById('myHoldings').innerHTML=CURRENCIES
+      .filter(c=>(mp.holdings[c]||0)>0.001)
+      .map(c=>`<div class="chip${c==='GUMUS'?' silver':''}">${mp.holdings[c].toFixed(2)} <b>${CLBL[c]||c}</b></div>`)
+      .join('');
     document.getElementById('creditInfo').innerHTML=mp.creditDueRound
       ?`<div class="credit-info">⚠️ Tur ${mp.creditDueRound}'de 10.000 TL geri ödenecek!</div>`:'';
+
+    // Butonlar
     document.getElementById('btnBuySell').disabled=!isMyTurn||mp.madeTransaction;
     document.getElementById('btnCredit').disabled=!isMyTurn||mp.usedCredit;
     document.getElementById('btnEnd').disabled=!isMyTurn;
     document.getElementById('btnCredit').textContent=mp.usedCredit?'💳 Kredi Kullanıldı':'💳 Kredi Çek';
-    document.getElementById('actionBtns').style.opacity=isMyTurn?'1':'.55';
+    document.querySelector('.action-btns').style.opacity=isMyTurn?'1':'.5';
   }
 
-  // Oyuncular
+  // Oyuncular paneli
   document.getElementById('playersPanel').innerHTML=players.map(p=>{
-    const isActive=data.currentPlayerSocketId===p.socketId,isMe=p.socketId===myId;
+    const isCur=curSid===p.socketId, isMe=p.socketId===myId;
     const tag=p.eliminated?`<span class="pp-tag tag-elim">💀 Elendi</span>`
               :p.finished?`<span class="pp-tag tag-done">✅ Bitti</span>`
-              :isActive?`<span class="pp-tag tag-turn">Oynuyor</span>`
+              :isCur?`<span class="pp-tag tag-turn">Oynuyor</span>`
               :isMe?`<span class="pp-tag tag-me">Sen</span>`:'';
-    return `<div class="pp-card ${p.eliminated?'elim':p.finished?'done':isActive?'active':isMe?'me':''}">
+    return `<div class="pp-card ${p.eliminated?'elim':p.finished?'done':isCur?'active':isMe?'me':''}">
       <div class="pp-header"><span class="pp-name">${isMe?'👤 ':''}${p.name}</span>${tag}</div>
       <div class="pp-goal">🎯 ${p.goalCard.amount.toLocaleString('tr-TR')} ${CLBL[p.goalCard.currency]||p.goalCard.currency} — ${Math.min(100,((p.holdings[p.goalCard.currency]||0)/p.goalCard.amount*100)).toFixed(0)}%
         ${p.creditDueRound?`<span style="color:var(--red);font-size:.7rem"> 💳T${p.creditDueRound}</span>`:''}</div>
-      <div class="pp-holdings">${CURRENCIES.filter(c=>(p.holdings[c]||0)>0.001).map(c=>`<div class="pp-chip">${p.holdings[c].toFixed(1)} <b>${CLBL[c]||c}</b></div>`).join('')}</div>
+      <div class="pp-holdings">${CURRENCIES.filter(c=>(p.holdings[c]||0)>0.001).map(c=>`<div class="pp-chip">${p.holdings[c].toFixed(1)} ${CLBL[c]||c}</div>`).join('')}</div>
     </div>`;
   }).join('');
 }
 
+// ── Kur Grafiği ───────────────────────────────────────────────────────────────
 function showRateChart(currency){
-  if(!gsd?.rateHistory?.[currency]||gsd.rateHistory[currency].length<2){
-    notify('Henüz yeterli veri yok (en az 2 tur)','info');return;
-  }
-  const history=gsd.rateHistory[currency];
-  const labels=history.map(h=>`Tur ${h.round}`);
-  const vals=history.map(h=>h.value);
+  const hist=gsd?.rateHistory?.[currency];
+  if(!hist||hist.length<2){notify('Henüz yeterli veri yok (en az 2 tur)','info');return;}
+  const labels=hist.map(h=>`Tur ${h.round}`);
+  const vals=hist.map(h=>h.value);
   const isUp=vals[vals.length-1]>=vals[0];
-  const isGram=(currency==='ALTIN'||currency==='GUMUS');
   document.getElementById('rateChartTitle').textContent=`📊 ${CLBL[currency]||currency} / TL`;
-  if(rateChartInst)rateChartInst.destroy();
-  const ctx=document.getElementById('rateChart').getContext('2d');
-  rateChartInst=new Chart(ctx,{
+  if(rChartInst)rChartInst.destroy();
+  rChartInst=new Chart(document.getElementById('rateChart').getContext('2d'),{
     type:'line',
-    data:{labels,datasets:[{label:`${CLBL[currency]||currency} (₺${isGram?'/gr':''})`,data:vals,
+    data:{labels,datasets:[{label:`${CLBL[currency]||currency} (₺)`,data:vals,
       borderColor:isUp?'#00ff88':'#ff4466',backgroundColor:isUp?'rgba(0,255,136,.1)':'rgba(255,68,102,.1)',
       borderWidth:3,tension:.4,fill:true,pointRadius:5,pointBackgroundColor:'#ffd700',pointBorderColor:'#fff',pointBorderWidth:2}]},
     options:{responsive:true,
@@ -705,6 +718,7 @@ function showRateChart(currency){
   document.getElementById('rateChartModal').classList.add('active');
 }
 
+// ── Al/Sat ────────────────────────────────────────────────────────────────────
 function openBuySell(){
   if(!gsd?.isMyTurn)return notify('Sıra sizde değil!','err');
   if(myPlayer?.madeTransaction)return notify('Bu turda zaten işlem yaptınız!','err');
@@ -735,8 +749,10 @@ function calcEx(){
   const pa=(ta*rates[tc])/rates[pc];
   document.getElementById('txPayAmt').value=pa.toFixed(4);
   const h=myPlayer?.holdings||{};
-  const ok=type==='buy'?(h[pc]||0)>=pa:(h[tc]||0)>=ta;
-  document.getElementById('txInfo').innerHTML=`Kur: 1 ${CLBL[tc]||tc} = ${(rates[tc]/rates[pc]).toFixed(4)} ${CLBL[pc]||pc}<br><span style="color:${ok?'var(--green)':'var(--red)'}">${ok?'✓ Yeterli':'✗ Yetersiz'}</span>`;
+  const ok=type==='buy'?(h[pc]||0)>=pa-0.0001:(h[tc]||0)>=ta-0.0001;
+  document.getElementById('txInfo').innerHTML=
+    `Kur: 1 ${CLBL[tc]||tc} = ${(rates[tc]/rates[pc]).toFixed(4)} ${CLBL[pc]||pc}<br>`+
+    `<span style="color:${ok?'var(--green)':'var(--red)'}">${ok?'✓ Yeterli':'✗ Yetersiz'}</span>`;
 }
 function execBuySell(){
   const type=document.getElementById('txType').value;
@@ -747,18 +763,22 @@ function execBuySell(){
   if(targetCurrency===paymentCurrency)return notify('Aynı para birimi seçilemez!','err');
   socket.emit('buySell',{type,targetCurrency,targetAmount,paymentCurrency});
 }
+
+// ── Kredi ─────────────────────────────────────────────────────────────────────
 function takeCredit(){
   if(!gsd?.isMyTurn)return notify('Sıra sizde değil!','err');
   if(myPlayer?.usedCredit)return notify('Kredi hakkınızı zaten kullandınız!','err');
   if(!confirm('10.000 TL kredi çekmek istediğinize emin misiniz?\n2 tur sonra otomatik geri ödenir. Ödeyemezseniz elenirsiniz!'))return;
   socket.emit('takeCredit');
 }
+
+// ── Portföy ───────────────────────────────────────────────────────────────────
 function openPortfolio(){
   const h=myPlayer?.portfolioHistory||[];
   if(h.length<2)return notify('Henüz yeterli veri yok!','info');
   const labels=h.map(x=>`Tur ${x.round}`);
   const vals=h.map(x=>x.value);
-  const first=vals[0],last=vals[vals.length-1],chg=last-first;
+  const first=vals[0], last=vals[vals.length-1], chg=last-first;
   const pct=((chg/first)*100).toFixed(2);
   document.getElementById('portfolioStats').innerHTML=[
     ['Başlangıç',first.toFixed(0)+' ₺',''],
@@ -767,19 +787,32 @@ function openPortfolio(){
   ].map(([l,v,col])=>`<div style="background:var(--bg);padding:12px;border-radius:8px;text-align:center">
     <div style="font-size:.78rem;color:var(--txt2);margin-bottom:4px">${l}</div>
     <div style="font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;${col?'color:'+col:''}">${v}</div></div>`).join('');
-  if(portfolioChartInst)portfolioChartInst.destroy();
-  const ctx=document.getElementById('portfolioChart').getContext('2d');
-  portfolioChartInst=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Portföy (₺)',data:vals,
-    borderColor:chg>=0?'#00ff88':'#ff4466',backgroundColor:chg>=0?'rgba(0,255,136,.1)':'rgba(255,68,102,.1)',
-    borderWidth:3,tension:.4,fill:true,pointRadius:5,pointBackgroundColor:'#ffd700'}]},
+  if(pChartInst)pChartInst.destroy();
+  pChartInst=new Chart(document.getElementById('portfolioChart').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{label:'Portföy (₺)',data:vals,
+      borderColor:chg>=0?'#00ff88':'#ff4466',backgroundColor:chg>=0?'rgba(0,255,136,.1)':'rgba(255,68,102,.1)',
+      borderWidth:3,tension:.4,fill:true,pointRadius:5,pointBackgroundColor:'#ffd700'}]},
     options:{responsive:true,plugins:{legend:{labels:{color:'#fff'}}},
       scales:{y:{ticks:{color:'#8892b0',callback:v=>v.toFixed(0)+' ₺'},grid:{color:'rgba(42,63,95,.3)'}},
-              x:{ticks:{color:'#8892b0'},grid:{color:'rgba(42,63,95,.3)'}}}}});
+              x:{ticks:{color:'#8892b0'},grid:{color:'rgba(42,63,95,.3)'}}}}
+  });
   document.getElementById('portfolioModal').classList.add('active');
 }
-function endTurn(){if(!gsd?.isMyTurn)return notify('Sıra sizde değil!','err');socket.emit('endTurn');}
+
+// ── Turu Bitir ────────────────────────────────────────────────────────────────
+function endTurn(){
+  if(!gsd?.isMyTurn)return notify('Sıra sizde değil!','err');
+  socket.emit('endTurn');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
 function closeModal(id){document.getElementById(id).classList.remove('active');}
-document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key==='A')document.getElementById('adminModal').classList.toggle('active');});
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey&&e.shiftKey&&e.key==='A') document.getElementById('adminModal').classList.toggle('active');
+});
 function execAdmin(){
   const currency=document.getElementById('adminCurr').value;
   const amount=parseFloat(document.getElementById('adminAmt').value);
