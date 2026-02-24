@@ -12,37 +12,49 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const CURRENCIES = ['TL', 'USD', 'EUR', 'ALTIN', 'STERLIN'];
+// ─── Sabitler ─────────────────────────────────────────────────────────────────
+const CURRENCIES = ['TL', 'USD', 'EUR', 'ALTIN', 'GUMUS', 'STERLIN'];
+const BOOM_CURRENCIES = ['USD', 'EUR', 'ALTIN', 'GUMUS', 'STERLIN']; // aşırı yükseliş adayları
 const TURN_TIMEOUT_MS = 60000;
 const CREDIT_AMOUNT = 10000;
 const CREDIT_REPAY_ROUNDS = 2;
+const BOOM_CHANCE = 0.01;     // %1 ihtimal
+const BOOM_GAIN   = 50;       // %50 değer artışı
+
+// Gram altın TR fiyatı yaklaşık (API'den çekemiyorsak fallback)
+// Gram gümüş TR fiyatı da eklendi
+const FALLBACK_RATES = { TL: 1, USD: 38.50, EUR: 41.20, ALTIN: 3800, GUMUS: 45.00, STERLIN: 48.80 };
 
 const EVENTS = [
-  { name: "Amerika Türkiye'ye Yaptırım Uyguladı", affectedCurrencies: ['USD', 'EUR'], riskFactor: 15 },
-  { name: 'Türkiye Doğalgaz Rezervi Buldu', affectedCurrencies: ['USD', 'EUR'], riskFactor: 12 },
-  { name: 'Avrupa Merkez Bankası Faiz Artırdı', affectedCurrencies: ['EUR', 'STERLIN'], riskFactor: 18 },
-  { name: 'Küresel Altın Talebi Arttı', affectedCurrencies: ['ALTIN', 'USD'], riskFactor: 20 },
-  { name: 'İngiltere Ekonomik Kriz Yaşıyor', affectedCurrencies: ['STERLIN', 'EUR'], riskFactor: 25 },
-  { name: 'ABD Enflasyon Verisi Beklentinin Üstünde', affectedCurrencies: ['USD', 'ALTIN'], riskFactor: 15 },
-  { name: 'Türkiye Turizm Rekoru Kırdı', affectedCurrencies: ['USD', 'EUR'], riskFactor: 10 },
-  { name: 'Petrol Fiyatları Düştü', affectedCurrencies: ['USD', 'EUR', 'ALTIN'], riskFactor: 12 },
-  { name: 'Avrupa Birliği Genişleme Planı Açıkladı', affectedCurrencies: ['EUR', 'STERLIN'], riskFactor: 14 },
-  { name: 'Altın Madeni Felaketi', affectedCurrencies: ['ALTIN', 'USD'], riskFactor: 22 },
-  { name: 'İngiltere Brexit Anlaşmasını Güncelledi', affectedCurrencies: ['STERLIN', 'EUR'], riskFactor: 16 },
-  { name: 'Türkiye İhracat Rekoru Kırdı', affectedCurrencies: ['USD', 'EUR'], riskFactor: 11 },
-  { name: 'ABD Tahvil Faizleri Yükseldi', affectedCurrencies: ['USD', 'ALTIN'], riskFactor: 13 },
-  { name: 'Küresel Salgın Endişesi', affectedCurrencies: ['ALTIN', 'USD', 'EUR'], riskFactor: 30 },
-  { name: 'Fed Faiz İndirdi', affectedCurrencies: ['USD', 'ALTIN'], riskFactor: 17 },
-  { name: 'Çin Ekonomik Büyüme Açıkladı', affectedCurrencies: ['ALTIN', 'USD'], riskFactor: 14 },
-  { name: 'Avrupa Enerji Krizi', affectedCurrencies: ['EUR', 'STERLIN'], riskFactor: 20 },
-  { name: 'Küresel Ticaret Savaşı', affectedCurrencies: ['USD', 'EUR', 'ALTIN'], riskFactor: 25 },
-  { name: 'Merkez Bankası Faiz Artırımı', affectedCurrencies: ['USD', 'EUR'], riskFactor: 19 },
-  { name: 'Altın Üretimi Azaldı', affectedCurrencies: ['ALTIN'], riskFactor: 15 }
+  { name: "Amerika Türkiye'ye Yaptırım Uyguladı",  affectedCurrencies: ['USD','EUR'],         riskFactor: 15 },
+  { name: 'Türkiye Doğalgaz Rezervi Buldu',          affectedCurrencies: ['USD','EUR'],         riskFactor: 12 },
+  { name: 'Avrupa Merkez Bankası Faiz Artırdı',      affectedCurrencies: ['EUR','STERLIN'],     riskFactor: 18 },
+  { name: 'Küresel Altın Talebi Arttı',              affectedCurrencies: ['ALTIN','USD'],       riskFactor: 20 },
+  { name: 'Gümüş Endüstriyel Talebi Patladı',        affectedCurrencies: ['GUMUS','ALTIN'],     riskFactor: 18 },
+  { name: 'İngiltere Ekonomik Kriz Yaşıyor',         affectedCurrencies: ['STERLIN','EUR'],     riskFactor: 25 },
+  { name: 'ABD Enflasyon Beklentinin Üstünde',       affectedCurrencies: ['USD','ALTIN'],       riskFactor: 15 },
+  { name: 'Türkiye Turizm Rekoru Kırdı',             affectedCurrencies: ['USD','EUR'],         riskFactor: 10 },
+  { name: 'Petrol Fiyatları Düştü',                  affectedCurrencies: ['USD','EUR','ALTIN'], riskFactor: 12 },
+  { name: 'AB Genişleme Planı Açıkladı',             affectedCurrencies: ['EUR','STERLIN'],     riskFactor: 14 },
+  { name: 'Altın Madeni Felaketi',                   affectedCurrencies: ['ALTIN','GUMUS'],     riskFactor: 22 },
+  { name: 'Gümüş Madeni Grevi',                      affectedCurrencies: ['GUMUS'],             riskFactor: 20 },
+  { name: 'İngiltere Brexit Anlaşmasını Güncelledi', affectedCurrencies: ['STERLIN','EUR'],     riskFactor: 16 },
+  { name: 'Türkiye İhracat Rekoru Kırdı',            affectedCurrencies: ['USD','EUR'],         riskFactor: 11 },
+  { name: 'ABD Tahvil Faizleri Yükseldi',            affectedCurrencies: ['USD','ALTIN'],       riskFactor: 13 },
+  { name: 'Küresel Salgın Endişesi',                 affectedCurrencies: ['ALTIN','USD','EUR'], riskFactor: 30 },
+  { name: 'Fed Faiz İndirdi',                        affectedCurrencies: ['USD','ALTIN'],       riskFactor: 17 },
+  { name: 'Çin Ekonomik Büyüme Açıkladı',            affectedCurrencies: ['ALTIN','GUMUS'],     riskFactor: 14 },
+  { name: 'Avrupa Enerji Krizi',                     affectedCurrencies: ['EUR','STERLIN'],     riskFactor: 20 },
+  { name: 'Küresel Ticaret Savaşı',                  affectedCurrencies: ['USD','EUR','ALTIN'], riskFactor: 25 },
+  { name: 'Merkez Bankası Faiz Artırımı',            affectedCurrencies: ['USD','EUR'],         riskFactor: 19 },
+  { name: 'Altın Üretimi Azaldı',                    affectedCurrencies: ['ALTIN','GUMUS'],     riskFactor: 15 },
+  { name: 'Yeşil Enerji Dönüşümü (Gümüş Talebi)',   affectedCurrencies: ['GUMUS'],             riskFactor: 16 },
+  { name: 'Küresel Resesyon Korkusu',                affectedCurrencies: ['USD','EUR','GUMUS'], riskFactor: 22 }
 ];
 
-const FALLBACK_RATES = { TL: 1, USD: 38.50, EUR: 41.20, ALTIN: 3200, STERLIN: 48.80 };
 const rooms = {};
 
+// ─── Yardımcı ─────────────────────────────────────────────────────────────────
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -52,7 +64,14 @@ function generateRoomCode() {
 
 function generateStarting() {
   const currency = CURRENCIES[Math.floor(Math.random() * CURRENCIES.length)];
-  const amounts = { TL: [15000, 40000], USD: [400, 1000], EUR: [350, 900], ALTIN: [5, 12], STERLIN: [300, 800] };
+  const amounts = {
+    TL:     [15000, 40000],
+    USD:    [400, 1000],
+    EUR:    [350, 900],
+    ALTIN:  [5, 12],
+    GUMUS:  [300, 800],
+    STERLIN:[300, 800]
+  };
   const [min, max] = amounts[currency];
   return { currency, amount: Math.floor(Math.random() * (max - min)) + min };
 }
@@ -80,8 +99,10 @@ function checkWinCondition(player, rates) {
   return (player.holdings[player.goalCard.currency] || 0) >= player.goalCard.amount;
 }
 
+// ─── Timer ────────────────────────────────────────────────────────────────────
 function clearTurnTimer(room) {
   if (room.turnTimer) { clearTimeout(room.turnTimer); room.turnTimer = null; }
+  room.turnTimerStart = null;
 }
 
 function startTurnTimer(room) {
@@ -89,63 +110,61 @@ function startTurnTimer(room) {
   room.turnTimerStart = Date.now();
   room.turnTimer = setTimeout(() => {
     const gs = room.gameState;
-    if (!gs) return;
+    if (!gs || room.status !== 'playing') return;
     const cp = room.players[gs.currentPlayerIndex];
-    io.to(room.code).emit('chatMsg', { name: '⏰ Sistem', msg: `${cp ? cp.name : '?'} süreyi aştı, sıra geçiyor...` });
+    io.to(room.code).emit('chatMsg', {
+      name: '⏰ Sistem',
+      msg: `${cp ? cp.name : '?'} süreyi aştı, sıra geçiyor...`
+    });
     doEndTurn(room);
   }, TURN_TIMEOUT_MS);
 }
 
-function checkCreditRepayments(room) {
-  const gs = room.gameState;
-  room.players.forEach(player => {
-    if (player.finished || player.eliminated) return;
-    if (!player.creditDueRound || gs.round < player.creditDueRound) return;
-    const portfolioTL = calculatePortfolioValue(player.holdings, gs.rates);
-    if (portfolioTL < CREDIT_AMOUNT) {
-      player.eliminated = true;
-      player.finished = true;
-      player.finishRound = gs.round;
-      io.to(room.code).emit('playerEliminated', { playerName: player.name, reason: 'Kredi borcunu ödeyemedi!' });
-      io.to(room.code).emit('chatMsg', { name: '🏦 Sistem', msg: `💀 ${player.name} kredi borcunu ödeyemedi ve elendi!` });
-    } else {
-      let remaining = CREDIT_AMOUNT;
-      const tlDeduct = Math.min(player.holdings['TL'] || 0, remaining);
-      player.holdings['TL'] = (player.holdings['TL'] || 0) - tlDeduct;
-      remaining -= tlDeduct;
-      if (remaining > 0) {
-        for (const c of ['USD', 'EUR', 'STERLIN', 'ALTIN']) {
-          if (remaining <= 0) break;
-          const rate = gs.rates[c] || 1;
-          const deduct = Math.min(player.holdings[c] || 0, remaining / rate);
-          player.holdings[c] = (player.holdings[c] || 0) - deduct;
-          remaining -= deduct * rate;
-        }
-      }
-      player.creditDueRound = null;
-      io.to(room.code).emit('chatMsg', { name: '🏦 Sistem', msg: `✅ ${player.name} kredisini geri ödedi.` });
-    }
-  });
+// ─── Round mantığı ────────────────────────────────────────────────────────────
+function findNextActiveIndex(room, fromIndex) {
+  const total = room.players.length;
+  let idx = (fromIndex + 1) % total;
+  let steps = 0;
+  while (room.players[idx].finished && steps < total) {
+    idx = (idx + 1) % total;
+    steps++;
+  }
+  if (room.players[idx].finished) return -1;
+  return idx;
 }
 
-function trackRateHistory(room) {
-  const gs = room.gameState;
-  if (!gs.rateHistory) gs.rateHistory = {};
-  CURRENCIES.forEach(c => {
-    if (!gs.rateHistory[c]) gs.rateHistory[c] = [];
-    gs.rateHistory[c].push({ round: gs.round, value: gs.rates[c] });
-  });
+function isLastPlayerOfRound(room, currentIndex) {
+  const total = room.players.length;
+  let idx = (currentIndex + 1) % total;
+  for (let i = 0; i < total - 1; i++) {
+    if (!room.players[idx].finished) return false;
+    idx = (idx + 1) % total;
+  }
+  return true;
 }
 
-function trackPortfolioHistory(room) {
+// ─── Boom (Aşırı Yükseliş) ───────────────────────────────────────────────────
+function rollBoom(room) {
+  if (Math.random() > BOOM_CHANCE) return null;
+  const currency = BOOM_CURRENCIES[Math.floor(Math.random() * BOOM_CURRENCIES.length)];
   const gs = room.gameState;
-  room.players.forEach(p => {
-    if (!p.finished && !p.eliminated) {
-      p.portfolioHistory.push({ round: gs.round, value: calculatePortfolioValue(p.holdings, gs.rates) });
-    }
+  const oldVal = gs.rates[currency];
+  gs.rates[currency] = Math.round(oldVal * (1 + BOOM_GAIN / 100) * 100) / 100;
+  // lastRateChanges'e ekle
+  if (!gs.lastRateChanges) gs.lastRateChanges = {};
+  gs.lastRateChanges[currency] = BOOM_GAIN;
+  trackRateHistory(room);
+  const boom = { currency, oldVal, newVal: gs.rates[currency] };
+  io.to(room.code).emit('boom', boom);
+  io.to(room.code).emit('chatMsg', {
+    name: '🚀 Sistem',
+    msg: `🚀💥 AŞIRI YÜKSELİŞ! ${currency} bir turda %${BOOM_GAIN} değer kazandı! (${oldVal.toFixed(2)} → ${gs.rates[currency].toFixed(2)} ₺)`
   });
+  console.log(`[BOOM] ${room.code} → ${currency} +${BOOM_GAIN}%`);
+  return boom;
 }
 
+// ─── Kur değişimi ─────────────────────────────────────────────────────────────
 function applyRateChanges(room) {
   const gs = room.gameState;
   if (!gs.pendingRateChanges) return;
@@ -159,6 +178,10 @@ function applyRateChanges(room) {
     gs.rateChangeLog.push({ currency, old, new: gs.rates[currency], change });
   });
   gs.pendingRateChanges = null;
+
+  // %1 şansla BOOM
+  rollBoom(room);
+
   trackRateHistory(room);
   io.to(room.code).emit('ratesApplied', {
     event: gs.currentEvent,
@@ -177,11 +200,61 @@ function drawEventCard(room) {
   event.affectedCurrencies.forEach(c => {
     gs.pendingRateChanges[c] = (Math.random() * 2 - 1) * event.riskFactor;
   });
-  room.players.forEach(p => { p.madeTransaction = false; });
+}
+
+function trackRateHistory(room) {
+  const gs = room.gameState;
+  if (!gs.rateHistory) gs.rateHistory = {};
+  CURRENCIES.forEach(c => {
+    if (!gs.rateHistory[c]) gs.rateHistory[c] = [];
+    gs.rateHistory[c].push({ round: gs.round, value: gs.rates[c] });
+  });
+}
+
+function trackPortfolioHistory(room) {
+  const gs = room.gameState;
+  room.players.forEach(p => {
+    if (!p.finished) {
+      p.portfolioHistory.push({ round: gs.round, value: calculatePortfolioValue(p.holdings, gs.rates) });
+    }
+  });
+}
+
+function checkCreditRepayments(room) {
+  const gs = room.gameState;
+  room.players.forEach(player => {
+    if (player.finished) return;
+    if (!player.creditDueRound || gs.round < player.creditDueRound) return;
+    const portfolioTL = calculatePortfolioValue(player.holdings, gs.rates);
+    if (portfolioTL < CREDIT_AMOUNT) {
+      player.eliminated = true;
+      player.finished = true;
+      player.finishRound = gs.round;
+      io.to(room.code).emit('playerEliminated', { playerName: player.name, reason: 'Kredi borcunu ödeyemedi!' });
+      io.to(room.code).emit('chatMsg', { name: '🏦 Sistem', msg: `💀 ${player.name} kredi borcunu ödeyemedi ve elendi!` });
+    } else {
+      let remaining = CREDIT_AMOUNT;
+      const tlDeduct = Math.min(player.holdings['TL'] || 0, remaining);
+      player.holdings['TL'] = (player.holdings['TL'] || 0) - tlDeduct;
+      remaining -= tlDeduct;
+      if (remaining > 0) {
+        for (const c of ['USD', 'EUR', 'STERLIN', 'ALTIN', 'GUMUS']) {
+          if (remaining <= 0) break;
+          const rate = gs.rates[c] || 1;
+          const deduct = Math.min(player.holdings[c] || 0, remaining / rate);
+          player.holdings[c] = (player.holdings[c] || 0) - deduct;
+          remaining -= deduct * rate;
+        }
+      }
+      player.creditDueRound = null;
+      io.to(room.code).emit('chatMsg', { name: '🏦 Sistem', msg: `✅ ${player.name} kredisini geri ödedi.` });
+    }
+  });
 }
 
 function endGame(room) {
   clearTurnTimer(room);
+  room._turnLocked = false;
   room.status = 'finished';
   const gs = room.gameState;
   const ranking = [...room.players].sort((a, b) => {
@@ -193,13 +266,17 @@ function endGame(room) {
     return calculatePortfolioValue(b.holdings, gs.rates) - calculatePortfolioValue(a.holdings, gs.rates);
   });
   io.to(room.code).emit('gameOver', { ranking, rates: gs.rates });
+  console.log(`[GAME] Bitti: ${room.code}`);
 }
 
 function broadcastGameState(room) {
   const gs = room.gameState;
   const currentPlayer = room.players[gs.currentPlayerIndex];
   const now = Date.now();
-  const timerRemaining = room.turnTimerStart ? Math.max(0, TURN_TIMEOUT_MS - (now - room.turnTimerStart)) : TURN_TIMEOUT_MS;
+  const timerRemaining = room.turnTimerStart
+    ? Math.max(0, TURN_TIMEOUT_MS - (now - room.turnTimerStart))
+    : TURN_TIMEOUT_MS;
+
   room.players.forEach(player => {
     const sock = io.sockets.sockets.get(player.socketId);
     if (!sock) return;
@@ -227,43 +304,55 @@ function broadcastGameState(room) {
 }
 
 function doEndTurn(room) {
+  // Mutex: aynı anda 2 kez çalışmayı önle (timer + manuel çakışması)
+  if (room._turnLocked) {
+    console.log(`[SKIP] ${room.code} doEndTurn zaten çalışıyor`);
+    return;
+  }
+  room._turnLocked = true;
+
   clearTurnTimer(room);
   const gs = room.gameState;
-  const totalPlayers = room.players.length;
-  let nextIdx = (gs.currentPlayerIndex + 1) % totalPlayers;
-  let steps = 0;
-  while (room.players[nextIdx].finished && steps < totalPlayers) {
-    nextIdx = (nextIdx + 1) % totalPlayers;
-    steps++;
+  if (!gs || room.status !== 'playing') {
+    room._turnLocked = false;
+    return;
   }
-  const firstActiveIdx = room.players.findIndex(p => !p.finished);
-  const isNewRound = (firstActiveIdx !== -1) && (
-    nextIdx <= firstActiveIdx ||
-    room.players.slice(gs.currentPlayerIndex + 1).every(p => p.finished)
-  );
-  if (isNewRound) {
+
+  const currentIdx = gs.currentPlayerIndex;
+  const roundEnds = isLastPlayerOfRound(room, currentIdx);
+
+  if (roundEnds) {
     gs.round++;
+    console.log(`[ROUND] ${room.code} → Tur ${gs.round}`);
     applyRateChanges(room);
     checkCreditRepayments(room);
+    trackPortfolioHistory(room);
+
     const stillActive = room.players.filter(p => !p.finished);
     if (stillActive.length <= 1) {
       if (stillActive.length === 1) { stillActive[0].finished = true; stillActive[0].finishRound = gs.round; }
+      room._turnLocked = false;
       endGame(room); return;
     }
-    trackPortfolioHistory(room);
     drawEventCard(room);
-    nextIdx = (gs.currentPlayerIndex + 1) % totalPlayers;
-    steps = 0;
-    while (room.players[nextIdx].finished && steps < totalPlayers) {
-      nextIdx = (nextIdx + 1) % totalPlayers;
-      steps++;
-    }
   }
+
+  const nextIdx = findNextActiveIndex(room, currentIdx);
+  if (nextIdx === -1) {
+    room._turnLocked = false;
+    endGame(room); return;
+  }
+
   gs.currentPlayerIndex = nextIdx;
+  room.players[nextIdx].madeTransaction = false;
+
+  room._turnLocked = false;
   broadcastGameState(room);
   startTurnTimer(room);
+  console.log(`[TURN] ${room.code} → ${room.players[nextIdx].name}`);
 }
 
+// ─── Socket ───────────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log(`[+] ${socket.id}`);
 
@@ -333,7 +422,32 @@ io.on('connection', (socket) => {
     if (!player) return;
     const sanitized = String(msg).slice(0, 150).trim();
     if (!sanitized) return;
+
+    // /omer komutu → para ekleme paneli aç (sadece oyun sırasında)
+    if (sanitized.toLowerCase() === '/omer') {
+      socket.emit('openGivePanel', { players: room.players.map(p => ({ socketId: p.socketId, name: p.name })) });
+      return;
+    }
+
     io.to(room.code).emit('chatMsg', { name: player.name, msg: sanitized });
+  });
+
+  // Admin: başka oyuncuya para ver (/omer panelinden)
+  socket.on('adminGive', ({ targetSocketId, currency, amount }) => {
+    const room = getRoomBySocket(socket.id);
+    if (!room || room.status !== 'playing') return;
+    if (!CURRENCIES.includes(currency)) return;
+    const amt = Number(amount);
+    if (!amt || amt <= 0 || amt > 9999999) return;
+    const target = room.players.find(p => p.socketId === targetSocketId);
+    if (!target) return socket.emit('error', 'Oyuncu bulunamadı!');
+    target.holdings[currency] = (target.holdings[currency] || 0) + amt;
+    socket.emit('giveOk', { targetName: target.name, currency, amount: amt });
+    io.to(room.code).emit('chatMsg', {
+      name: '💰 Sistem',
+      msg: `${target.name} hesabına ${amt.toLocaleString('tr-TR')} ${currency} eklendi.`
+    });
+    broadcastGameState(room);
   });
 
   socket.on('startGame', async () => {
@@ -341,15 +455,32 @@ io.on('connection', (socket) => {
     if (!room) return;
     if (room.host !== socket.id) return socket.emit('error', 'Sadece oda sahibi başlatabilir!');
     if (room.players.length < 2) return socket.emit('error', 'En az 2 oyuncu gerekli!');
+
     let realRates = { ...FALLBACK_RATES };
     try {
       const fetch = (await import('node-fetch')).default;
+      // Döviz kurları
       const res = await fetch('https://api.exchangerate-api.com/v4/latest/TRY', { signal: AbortSignal.timeout(5000) });
       if (res.ok) {
         const data = await res.json();
-        realRates = { TL: 1, USD: Math.round((1/data.rates.USD)*100)/100, EUR: Math.round((1/data.rates.EUR)*100)/100, STERLIN: Math.round((1/data.rates.GBP)*100)/100, ALTIN: 3200 };
+        realRates.USD     = Math.round((1 / data.rates.USD) * 100) / 100;
+        realRates.EUR     = Math.round((1 / data.rates.EUR) * 100) / 100;
+        realRates.STERLIN = Math.round((1 / data.rates.GBP) * 100) / 100;
       }
-    } catch(e) { console.warn('Kur alınamadı, fallback kullanılıyor.'); }
+      // Gram altın TRY fiyatı (metals-api ücretsiz fallback yoksa sabit kullan)
+      // Gold: 1 troy oz = 31.1035 gram; metals-api veya alternative
+      // Bunun yerine: USD/oz * (USD/TRY) / 31.1035
+      const goldOzUSD = 3300; // yaklaşık spot fiyat
+      const goldGramTRY = Math.round((goldOzUSD * realRates.USD) / 31.1035);
+      realRates.ALTIN = goldGramTRY;
+
+      // Gram gümüş: 1 troy oz gümüş ~33 USD civarı
+      const silverOzUSD = 33;
+      const silverGramTRY = Math.round((silverOzUSD * realRates.USD) / 31.1035 * 10) / 10;
+      realRates.GUMUS = silverGramTRY;
+
+    } catch (e) { console.warn('Kur alınamadı, fallback.'); }
+
     room.players.forEach(p => {
       const starting = generateStarting();
       const goal = generateGoal(starting.currency, starting.amount, realRates);
@@ -358,19 +489,23 @@ io.on('connection', (socket) => {
       p.finished = false; p.eliminated = false; p.finishRound = null;
       p.madeTransaction = false; p.usedCredit = false; p.creditDueRound = null; p.portfolioHistory = [];
     });
+
     room.status = 'playing';
     room.gameState = {
       round: 1, rates: { ...realRates }, realRates,
       lastRateChanges: {}, currentEvent: null, pendingRateChanges: null,
       currentPlayerIndex: 0, rateChangeLog: [], rateHistory: {}
     };
+
     trackRateHistory(room);
     drawEventCard(room);
     trackPortfolioHistory(room);
+
     io.to(room.code).emit('gameStarted');
     io.to(room.code).emit('chatMsg', { name: '🎮 Sistem', msg: `🚀 Oyun başladı! İlk sıra: ${room.players[0].name}` });
     broadcastGameState(room);
     startTurnTimer(room);
+    console.log(`[GAME] Başladı: ${room.code}`);
   });
 
   socket.on('buySell', ({ type, targetCurrency, targetAmount, paymentCurrency }) => {
@@ -378,20 +513,27 @@ io.on('connection', (socket) => {
     if (!room || room.status !== 'playing') return;
     const gs = room.gameState;
     const cp = room.players[gs.currentPlayerIndex];
-    if (cp.socketId !== socket.id) return socket.emit('error', 'Sıra sizde değil!');
+    if (!cp || cp.socketId !== socket.id) return socket.emit('error', 'Sıra sizde değil!');
     if (cp.madeTransaction) return socket.emit('error', 'Bu turda zaten işlem yaptınız!');
     if (targetCurrency === paymentCurrency) return socket.emit('error', 'Aynı para birimi seçemezsiniz!');
+    if (!CURRENCIES.includes(targetCurrency) || !CURRENCIES.includes(paymentCurrency))
+      return socket.emit('error', 'Geçersiz para birimi!');
+
     const paymentAmount = (targetAmount * gs.rates[targetCurrency]) / gs.rates[paymentCurrency];
+
     if (type === 'buy') {
-      if ((cp.holdings[paymentCurrency] || 0) < paymentAmount) return socket.emit('error', `Yetersiz ${paymentCurrency} bakiyesi!`);
+      if ((cp.holdings[paymentCurrency] || 0) < paymentAmount)
+        return socket.emit('error', `Yetersiz ${paymentCurrency} bakiyesi!`);
       cp.holdings[paymentCurrency] -= paymentAmount;
       cp.holdings[targetCurrency] = (cp.holdings[targetCurrency] || 0) + targetAmount;
     } else {
-      if ((cp.holdings[targetCurrency] || 0) < targetAmount) return socket.emit('error', `Yetersiz ${targetCurrency} bakiyesi!`);
+      if ((cp.holdings[targetCurrency] || 0) < targetAmount)
+        return socket.emit('error', `Yetersiz ${targetCurrency} bakiyesi!`);
       cp.holdings[targetCurrency] -= targetAmount;
       cp.holdings[paymentCurrency] = (cp.holdings[paymentCurrency] || 0) + paymentAmount;
     }
     cp.madeTransaction = true;
+
     if (checkWinCondition(cp, gs.rates)) {
       cp.finished = true; cp.finishRound = gs.round;
       const rank = room.players.filter(p => p.finished && !p.eliminated).length;
@@ -402,7 +544,10 @@ io.on('connection', (socket) => {
         if (stillActive.length === 1) { stillActive[0].finished = true; stillActive[0].finishRound = gs.round; }
         endGame(room); return;
       }
+      socket.emit('transactionOk', { holdings: cp.holdings });
+      doEndTurn(room); return;
     }
+
     socket.emit('transactionOk', { holdings: cp.holdings });
     broadcastGameState(room);
   });
@@ -412,7 +557,7 @@ io.on('connection', (socket) => {
     if (!room || room.status !== 'playing') return;
     const gs = room.gameState;
     const cp = room.players[gs.currentPlayerIndex];
-    if (cp.socketId !== socket.id) return socket.emit('error', 'Sıra sizde değil!');
+    if (!cp || cp.socketId !== socket.id) return socket.emit('error', 'Sıra sizde değil!');
     if (cp.usedCredit) return socket.emit('error', 'Kredi hakkınızı zaten kullandınız!');
     cp.holdings['TL'] = (cp.holdings['TL'] || 0) + CREDIT_AMOUNT;
     cp.usedCredit = true;
@@ -427,7 +572,7 @@ io.on('connection', (socket) => {
     if (!room || room.status !== 'playing') return;
     const gs = room.gameState;
     const cp = room.players[gs.currentPlayerIndex];
-    if (cp.socketId !== socket.id) return socket.emit('error', 'Sıra sizde değil!');
+    if (!cp || cp.socketId !== socket.id) return socket.emit('error', 'Sıra sizde değil!');
     doEndTurn(room);
   });
 
@@ -435,6 +580,7 @@ io.on('connection', (socket) => {
     if (secret !== 'KURADMIN2025') return;
     const room = getRoomBySocket(socket.id);
     if (!room || room.host !== socket.id || room.status !== 'playing') return;
+    if (!CURRENCIES.includes(currency)) return;
     const me = room.players.find(p => p.socketId === socket.id);
     if (!me) return;
     me.holdings[currency] = (me.holdings[currency] || 0) + Number(amount);
@@ -463,9 +609,7 @@ io.on('connection', (socket) => {
       }
       if (room.gameState && room.players[room.gameState.currentPlayerIndex]?.socketId === socket.id) {
         doEndTurn(room);
-      } else {
-        broadcastGameState(room);
-      }
+      } else { broadcastGameState(room); }
     }
     console.log(`[-] ${socket.id} (${playerName})`);
   });
