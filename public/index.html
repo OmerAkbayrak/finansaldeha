@@ -235,7 +235,6 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
             <div class="cp-item cp-start"><div class="cp-label">🎲 Başlangıç</div><div class="cp-val" id="myStart">—</div></div>
             <div class="cp-item cp-goal"><div class="cp-label">🎯 Hedef</div><div class="cp-val" id="myGoal">—</div></div>
           </div>
-          <button class="btn btn-sec" onclick="refreshCards()" style="width:100%">🔄 Yenile</button>
         </div>
         <div class="card">
           <h3 style="margin-bottom:9px">💬 Sohbet</h3>
@@ -297,7 +296,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
           </div>
         </div>
         <div class="card">
-          <h3 style="margin-bottom:9px">💬 Sohbet <span style="font-size:.7rem;color:var(--txt2)">/omer=para • /turker veya /bulut=at</span></h3>
+          <h3 style="margin-bottom:9px">💬 Sohbet</h3>
           <div class="chat-box" id="gameChat"></div>
           <div class="chat-input-row">
             <input type="text" id="gameChatIn" placeholder="Mesaj..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat('game')">
@@ -348,13 +347,8 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
       <p style="color:var(--txt);font-weight:700;margin-bottom:8px">🚀 BOOM Olayı</p>
       <p style="margin-bottom:14px">Her tur sonunda <b style="color:#ff9900">%1 ihtimalle</b> rastgele bir birim %50 aniden yükselir! Konfetiler patlar ve bildirim gelir. O birimi elinde tutuyorsan büyük kâr!</p>
 
-      <p style="color:var(--txt);font-weight:700;margin-bottom:8px">💬 Chat Komutları</p>
-      <p style="margin-bottom:4px">• <b style="color:#9b59b6">/omer</b> → İstediğin oyuncuya para ekle paneli</p>
-      <p style="margin-bottom:4px">• <b style="color:var(--red)">/turker [isim]</b> → O oyuncuyu oyundan at</p>
-      <p style="margin-bottom:14px">• <b style="color:var(--red)">/bulut [isim]</b> → Aynı işlev (yedek komut)</p>
-
       <p style="color:var(--txt);font-weight:700;margin-bottom:8px">🤖 Bot</p>
-      <p>KurBot her tur hedefine doğru akıllıca yatırım yapar. Seni yenebilir!</p>
+      <p>KurBot her tur olaydaki birimleri analiz ederek akıllıca yatırım yapar. Kazanabilecek duruma geldiğinde tüm varlığını hedef birime çevirir. Seni yenebilir!</p>
     </div>
     <div class="modal-btns"><button class="btn" onclick="closeModal('helpModal')" style="width:100%">Anladım!</button></div>
   </div>
@@ -363,7 +357,10 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
 <!-- Al/Sat -->
 <div class="modal" id="buySellModal">
   <div class="modal-inner">
-    <div class="modal-title">💱 Al / Sat</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title" style="margin-bottom:0">💱 Al / Sat</div>
+      <div id="txTimerBadge" style="font-family:'Space Mono',monospace;font-size:.85rem;background:rgba(255,215,0,.12);border:1px solid var(--gold);border-radius:8px;padding:4px 10px;color:var(--gold)">⏳ —</div>
+    </div>
     <label>İşlem Türü</label>
     <select id="txType" onchange="calcEx()"><option value="buy">Satın Al</option><option value="sell">Sat</option></select>
     <label id="txCurrLbl">Para Birimi</label><select id="txCurr" onchange="calcEx()"></select>
@@ -371,10 +368,10 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
     <label id="txPayLbl">Ödeme Birimi</label><select id="txPay" onchange="calcEx()"></select>
     <label id="txPayAmtLbl">Ödenecek</label><input type="number" id="txPayAmt" readonly style="border-color:var(--gold)">
     <div id="txInfo" style="font-size:.8rem;color:var(--txt2);padding:8px;background:var(--bg);border-radius:8px;margin-top:3px">Miktar girin...</div>
-    <!-- Al/Sat yükleniyor + kalan süre -->
+    <!-- Yükleniyor -->
     <div class="tx-loading" id="txLoading">
       <div class="spinner"></div>
-      <span>İşlem yapılıyor... Kalan süre: <b id="txTimerDisp">—</b></span>
+      <span>İşlem yapılıyor...</span>
     </div>
     <div class="modal-btns">
       <button class="btn btn-sec" onclick="closeModal('buySellModal')">İptal</button>
@@ -600,14 +597,20 @@ function startClientTimer(ms){
   tmrEnd=Date.now()+ms;
   tmrInterval=setInterval(()=>{
     const rem=Math.max(0,tmrEnd-Date.now());
-    document.getElementById('gTimer').textContent=Math.ceil(rem/1000)+'s';
+    const secs=Math.ceil(rem/1000);
+    document.getElementById('gTimer').textContent=secs+'s';
     const pct=(rem/60000)*100;
     const bar=document.getElementById('timerBar');
     bar.style.width=pct+'%';
     bar.className='timer-bar'+(pct<25?' urgent':'');
-    // Al/Sat modalındaki süre göstergesi
-    const txT=document.getElementById('txTimerDisp');
-    if(txT)txT.textContent=Math.ceil(rem/1000)+'s';
+    // Al/Sat modalındaki süre badge
+    const badge=document.getElementById('txTimerBadge');
+    if(badge){
+      badge.textContent='⏳ '+secs+'s';
+      badge.style.borderColor=pct<25?'var(--red)':'var(--gold)';
+      badge.style.color=pct<25?'var(--red)':'var(--gold)';
+      badge.style.background=pct<25?'rgba(255,68,102,.12)':'rgba(255,215,0,.12)';
+    }
     if(rem<=0)clearInterval(tmrInterval);
   },200);
 }
