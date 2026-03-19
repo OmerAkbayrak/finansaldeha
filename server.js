@@ -103,6 +103,9 @@ function newPlayer(sid, name, isHost, rates, isBot = false) {
     holdings: Object.fromEntries(CURRENCIES.map(c => [c, c === st.currency ? st.amount : 0])),
     finished: false, eliminated: false, finishRound: null,
     madeTransaction: false, usedCredit: false, creditDueRound: null, portfolioHistory: [],
+    txLog: [],         // { round, spentRatio, gainedCurrency } işlem kayıtları
+    noTxStreak: 0,     // art arda işlemsiz tur sayısı
+    adviceHistory: [], // birikmiş tavsiyeler
   };
 }
 
@@ -380,6 +383,90 @@ function doBotTurn(room) {
   }, delay);
 }
 
+// ── Tur sonu oyuncu analizi & tavsiye ────────────────────────────────────────
+/*
+  Her round sonunda insan oyuncular için 3 kural kontrol edilir:
+  A) Düşük yatırım oranı   → portfolyonun %10'undan az harcadı  (son 3 turda)
+  B) Yüksek yatırım oranı  → portfolyonun %80'inden fazla harcadı (son 3 turda)
+  C) Pasif strateji         → art arda 5 tur işlem yapmadı
+*/
+function analyzeTurnForPlayer(p, gs) {
+  if (p.isBot || p.finished) return [];
+  const tips = [];
+  const totalTL = portfolioTL(p.holdings, gs.rates);
+
+  // noTxStreak güncelle
+  if (p.madeTransaction) {
+    p.noTxStreak = 0;
+  } else {
+    p.noTxStreak = (p.noTxStreak || 0) + 1;
+  }
+
+  // A) Düşük yatırım oranı: Son 3 turda ortalaması çok düşük mü?
+  const recent = (p.txLog || []).slice(-3);
+  if (recent.length >= 1 && p.madeTransaction) {
+    const avgRatio = recent.reduce((s, t) => s + t.spentRatio, 0) / recent.length;
+    if (avgRatio < 0.08) {
+      tips.push({
+        type: 'low_investment',
+        icon: '📉',
+        title: 'Yatırım Miktarın Düşük',
+        msg: `Portföyünün yalnızca %${(avgRatio*100).toFixed(0)}'ini yatırıma ayırdın. Piyasa yükseli eğilimindeyken daha büyük hamleler daha fazla kâr getirebilir.`,
+        tip: `💡 Portföyünün %20–50'sini yatırıma ayırmayı dene.`,
+      });
+    }
+  }
+
+  // B) Yüksek yatırım oranı: Son 3 turda ortalama %80'den fazla harcıyorsa
+  if (recent.length >= 2 && p.madeTransaction) {
+    const avgRatio = recent.reduce((s, t) => s + t.spentRatio, 0) / recent.length;
+    if (avgRatio > 0.80) {
+      tips.push({
+        type: 'high_investment',
+        icon: '⚠️',
+        title: 'Riskli Büyük Yatırımlar',
+        msg: `Son turlarda portföyünün %${(avgRatio*100).toFixed(0)}'ini tek hamlede harcıyorsun. Piyasa tersine dönerse büyük zarar edebilirsin.`,
+        tip: `💡 Her hamlende portföyünün %30–50'sini yatırmayı dene; bir kısmı likid kalsın.`,
+      });
+    }
+  }
+
+  // C) 5 tur art arda pasif
+  if ((p.noTxStreak || 0) >= 5) {
+    tips.push({
+      type: 'passive',
+      icon: '⏳',
+      title: 'Çok Pasif Strateji',
+      msg: `${p.noTxStreak} tur boyunca hiç işlem yapmadın. Fırsatlar kaçıyor olabilir.`,
+      tip: `💡 Her tur mutlaka işlem yapmak şart değil; ama olay kartlarını takip et ve fırsatlar çıktığında harekete geç.`,
+    });
+  }
+
+  // Tavsiye geçmişine ekle
+  if (!p.adviceHistory) p.adviceHistory = [];
+  tips.forEach(t => p.adviceHistory.push({ round: gs.round, ...t }));
+  // Maksimum 20 tavsiye tut
+  if (p.adviceHistory.length > 20) p.adviceHistory = p.adviceHistory.slice(-20);
+
+  return tips;
+}
+
+// ── Analizleri gönder (her round sonunda) ──────────────────────────────────────
+function sendRoundAdvice(room) {
+  const gs = room.gameState;
+  room.players.forEach(p => {
+    if (p.isBot || p.finished) return;
+    const tips = analyzeTurnForPlayer(p, gs);
+    const sock = io.sockets.sockets.get(p.socketId); if (!sock) return;
+    // Her turda tavsiye geçmişinin tamamını gönder (portföy modal için)
+    sock.emit('playerAdvice', {
+      round: gs.round,
+      newTips: tips,
+      allAdvice: p.adviceHistory || [],
+    });
+  });
+}
+
 // ── Bot hakareti: kullanıcı zarar edecek birime yatırım yaptıysa ──────────────
 function botTauntIfHurt(room, boughtCurrency) {
   // pending: şu an tur sonunda uygulanacak değişimler
@@ -410,6 +497,8 @@ function endTurn(room) {
     // ── Round sonu ──────────────────────────────────────────────────────────
     gs.round++;
     applyRates(room); checkCredits(room); snapPortfolio(room);
+    // Tur sonu tavsiye analizi (applyRates ve snapPortfolio sonrası, madeTransaction hâlâ set)
+    sendRoundAdvice(room);
     const active = room.players.filter(p => !p.finished);
     if (active.length <= 1) {
       if (active.length === 1) { active[0].finished = true; active[0].finishRound = gs.round; }
@@ -590,6 +679,15 @@ io.on('connection', socket => {
       cp.holdings[paymentCurrency] = (cp.holdings[paymentCurrency] || 0) + payAmt;
     }
     cp.madeTransaction = true;
+
+    // İşlem kaydı (analiz için)
+    if (!cp.isBot) {
+      const totalTL = portfolioTL(cp.holdings, gs.rates);
+      const spentTL = payAmt * (gs.rates[paymentCurrency] || 1);
+      const spentRatio = totalTL > 0 ? spentTL / totalTL : 0;
+      if (!cp.txLog) cp.txLog = [];
+      cp.txLog.push({ round: gs.round, spentRatio, gainedCurrency: targetCurrency, spentCurrency: paymentCurrency });
+    }
 
     // Bot varsa ve kullanıcı zarar edecek birime yatırım yaptıysa hakaret et
     botTauntIfHurt(room, targetCurrency);
