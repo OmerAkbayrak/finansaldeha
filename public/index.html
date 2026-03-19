@@ -29,6 +29,14 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
 .btn-blue{background:linear-gradient(135deg,var(--blue),#66aaff);color:#fff;box-shadow:none}
 .btn-purple{background:linear-gradient(135deg,#9b59b6,#c39bd3);color:#fff;box-shadow:none}
 .hidden{display:none!important}
+.advice-card{background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .3s}
+.advice-card.low_investment{border-color:var(--blue)}.advice-card.high_investment{border-color:var(--red)}.advice-card.passive{border-color:#9b59b6}
+.advice-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.advice-icon{font-size:1.3rem}.advice-title{font-weight:700;font-size:.88rem}
+.advice-msg{font-size:.8rem;color:var(--txt2);line-height:1.5;margin-bottom:5px}
+.advice-tip{font-size:.78rem;font-weight:600;line-height:1.4}
+.advice-card.low_investment .advice-tip{color:var(--blue)}.advice-card.high_investment .advice-tip{color:var(--red)}.advice-card.passive .advice-tip{color:#9b59b6}
+.advice-round{font-size:.68rem;color:var(--txt2);margin-top:3px}
 .screen{animation:fadeIn .35s ease-out}
 @keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
@@ -386,6 +394,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
     <div class="modal-title">📈 Portföy Performansı</div>
     <canvas id="portfolioChart" style="max-height:300px"></canvas>
     <div id="portfolioStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:13px"></div>
+    <div id="adviceList" style="margin-top:16px"></div>
     <div class="modal-btns"><button class="btn" onclick="closeModal('portfolioModal')" style="width:100%">Kapat</button></div>
   </div>
 </div>
@@ -858,6 +867,38 @@ function takeCredit(){
 }
 
 // ── Portföy ───────────────────────────────────────────────────────────────────
+// ── Tavsiye sistemi ───────────────────────────────────────────────────────────
+let latestAdvice = [];
+
+socket.on('playerAdvice', ({ round, newTips, allAdvice }) => {
+  latestAdvice = allAdvice || [];
+  if (!newTips || newTips.length === 0) return;
+  // Her yeni tavsiyeyi bildirim olarak göster (tur başında)
+  newTips.forEach((t, i) => {
+    setTimeout(() => {
+      const typeClass = t.type === 'high_investment' ? 'err' : t.type === 'low_investment' ? 'info' : 'ev';
+      notify(`${t.icon} <b>${t.title}</b><br><span style="font-size:.8rem">${t.msg}</span><br><span style="font-size:.78rem;opacity:.8">${t.tip}</span>`, typeClass, 9000);
+    }, i * 1200);
+  });
+});
+
+function renderAdviceList(container) {
+  if (!latestAdvice || latestAdvice.length === 0) {
+    container.innerHTML = '<div style="color:var(--txt2);font-size:.82rem;text-align:center;padding:10px">Henüz tavsiye yok. Daha fazla tur oyna!</div>';
+    return;
+  }
+  // En yeniden eskiye göster, max 8 tavsiye
+  const shown = [...latestAdvice].reverse().slice(0, 8);
+  container.innerHTML = '<div style="font-size:.8rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px">📚 Yatırım Tavsiyeleri</div>' +
+    shown.map(t => `
+      <div class="advice-card ${t.type}">
+        <div class="advice-header"><span class="advice-icon">${t.icon}</span><span class="advice-title">${t.title}</span></div>
+        <div class="advice-msg">${t.msg}</div>
+        <div class="advice-tip">${t.tip}</div>
+        <div class="advice-round">Tur ${t.round}'de üretildi</div>
+      </div>`).join('');
+}
+
 function openPortfolio(){
   const h=myPlayer?.portfolioHistory||[];
   if(h.length<2)return notify('Yeterli veri yok!','info');
@@ -878,6 +919,7 @@ function openPortfolio(){
               x:{ticks:{color:'#8892b0'},grid:{color:'rgba(42,63,95,.3)'}}}}
   });
   document.getElementById('portfolioModal').classList.add('active');
+  renderAdviceList(document.getElementById('adviceList'));
 }
 
 // ── Tur Bitir ─────────────────────────────────────────────────────────────────
