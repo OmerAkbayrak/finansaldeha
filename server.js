@@ -261,7 +261,7 @@ function broadcast(room) {
       isMyTurn: p.socketId === cp?.socketId, timerMs: rem,
       rateHistory: gs.rateHistory || {},
       players: room.players.map(q => ({
-        socketId: q.socketId, name: q.name, isBot: q.isBot || false,
+        socketId: q.socketId, name: q.name, isBot: q.isBot || false, avatarId: q.avatarId||1, avatarImg: q.avatarImg||'',
         finished: q.finished, eliminated: q.eliminated || false, finishRound: q.finishRound,
         holdings: {...q.holdings}, goalCard: q.goalCard, startingCard: q.startingCard,
         madeTransaction: q.madeTransaction, usedCredit: q.usedCredit,
@@ -526,30 +526,33 @@ function endTurn(room) {
 io.on('connection', socket => {
   console.log(`[+] ${socket.id}`);
 
-  socket.on('createRoom', ({ name }) => {
+  socket.on('createRoom', ({ name, avatarId, avatarName, avatarImg }) => {
     const code = genCode();
     rooms[code] = { code, host:socket.id, players:[], gameState:null, status:'lobby', _tmr:null, _tmrStart:null, _locked:false };
     const p = newPlayer(socket.id, name, true, FALLBACK);
+    p.avatarId=avatarId||1; p.avatarName=avatarName||''; p.avatarImg=avatarImg||'';
     rooms[code].players.push(p); socket.join(code);
     socket.emit('roomCreated', { code, player:p });
   });
 
-  socket.on('startSolo', ({ name }) => {
+  socket.on('startSolo', ({ name, avatarId, avatarName, avatarImg }) => {
     const code = genCode();
     rooms[code] = { code, host:socket.id, players:[], gameState:null, status:'lobby', _tmr:null, _tmrStart:null, _locked:false };
     const p   = newPlayer(socket.id, name, true, FALLBACK); p.ready = true;
+    p.avatarId=avatarId||1; p.avatarName=avatarName||''; p.avatarImg=avatarImg||'';
     const bot = newPlayer(BOT_ID, '🤖 KurBot', false, FALLBACK, true); bot.ready = true;
     rooms[code].players.push(p, bot); socket.join(code);
     socket.emit('roomCreated', { code, player:p, isSolo:true });
     socket.emit('lobbyReady',  { isSolo:true });
   });
 
-  socket.on('joinRoom', ({ code, name }) => {
+  socket.on('joinRoom', ({ code, name, avatarId, avatarName, avatarImg }) => {
     const room = rooms[code.toUpperCase()];
     if (!room)                   return socket.emit('error', 'Oda bulunamadı!');
     if (room.status !== 'lobby') return socket.emit('error', 'Oyun zaten başladı!');
     if (room.players.length >= 6) return socket.emit('error', 'Oda dolu!');
     const p = newPlayer(socket.id, name, false, FALLBACK);
+    p.avatarId=avatarId||1; p.avatarName=avatarName||''; p.avatarImg=avatarImg||'';
     room.players.push(p); socket.join(code.toUpperCase());
     socket.emit('joinedRoom', { code:code.toUpperCase(), player:p, players:room.players });
     io.to(code.toUpperCase()).emit('playerJoined', { players:room.players });
@@ -603,7 +606,7 @@ io.on('connection', socket => {
       return;
     }
 
-    io.to(room.code).emit('chatMsg', { name:p.name, msg:txt });
+    io.to(room.code).emit('chatMsg', { name:p.name, msg:txt, avatarImg:p.avatarImg||'' });
   });
 
   socket.on('adminGive', ({ targetSocketId, currency, amount }) => {
