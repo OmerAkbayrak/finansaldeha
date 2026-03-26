@@ -36,120 +36,32 @@ const BOT_TAUNTS = [
   'Git kitap falan oku kanka'
 ];
 
-// EVENTS artık tier bazlı: tier 1 = basit (tur 1-4), tier 2 = orta (tur 5-9), tier 3 = karmaşık (tur 10+)
-// Her olay için outcomes: her birimin kendi yönü ve risk aralığı ayrı
-// outcomes[birim] = { min, max }  → negatif=düşüş, pozitif=yükseliş (rastgele bu aralıkta)
 const EVENTS = [
-  // ─── TİER 1: Temel olaylar (basit, 1-2 birim) ────────────────────────────
-  { tier:1, name:'Dolar/TL Kuru Yükseldi',
-    desc:'Piyasada dolar talebi arttı.',
-    outcomes:{ USD:{min:8,max:18}, TL:{min:-5,max:-2} } },
-  { tier:1, name:'TL Değer Kazandı',
-    desc:'Merkez Bankası faiz kararıyla TL güçlendi.',
-    outcomes:{ USD:{min:-12,max:-5}, EUR:{min:-10,max:-4} } },
-  { tier:1, name:'Altın Fiyatları Yükseldi',
-    desc:'Küresel belirsizlik altına olan ilgiyi artırdı.',
-    outcomes:{ ALTIN:{min:6,max:16} } },
-  { tier:1, name:'Gümüş Endüstriyel Talebi Arttı',
-    desc:'Elektronik sektörü gümüş tüketimini artırdı.',
-    outcomes:{ GUMUS:{min:7,max:15}, ALTIN:{min:2,max:8} } },
-  { tier:1, name:'Euro Bölgesi Büyüme Verisi Açıklandı',
-    desc:'AB beklentileri aştı, Euro güçlendi.',
-    outcomes:{ EUR:{min:5,max:14} } },
-  { tier:1, name:'İngiltere Faiz Kararı',
-    desc:'Bank of England faiz oranını sabit tuttu.',
-    outcomes:{ STERLIN:{min:-6,max:10} } },
-  { tier:1, name:'Türkiye Turizm Geliri Arttı',
-    desc:'Yaz sezonu döviz girişini hızlandırdı.',
-    outcomes:{ USD:{min:-5,max:3}, EUR:{min:-4,max:3} } },
-  { tier:1, name:'ABD İşsizlik Verisi Açıklandı',
-    desc:'İşsizlik oranı beklentinin altında kaldı.',
-    outcomes:{ USD:{min:3,max:12} } },
-  { tier:1, name:'Petrol Fiyatları Hafif Düştü',
-    desc:'OPEC üretim kararı piyasaları sakinleştirdi.',
-    outcomes:{ USD:{min:-4,max:6}, EUR:{min:-3,max:5} } },
-  { tier:1, name:'Türkiye İhracat Rakamları Açıklandı',
-    desc:'İhracat artışı döviz rezervlerini güçlendirdi.',
-    outcomes:{ USD:{min:-8,max:2}, EUR:{min:-7,max:2} } },
-
-  // ─── TİER 2: Orta düzey (2-3 birim, belirsiz sonuçlar) ───────────────────
-  { tier:2, name:'Fed Faiz Kararı Açıklandı',
-    desc:'Federal Reserve faiz kararı piyasalarda karışık etki yarattı.',
-    outcomes:{ USD:{min:-10,max:18}, ALTIN:{min:-12,max:15}, EUR:{min:-8,max:10} } },
-  { tier:2, name:'Çin Büyüme Beklentisi Güncellendi',
-    desc:'Çin büyüme rakamları hem metal hem dolar piyasalarını sarstı.',
-    outcomes:{ ALTIN:{min:-8,max:14}, GUMUS:{min:-6,max:12}, USD:{min:-5,max:8} } },
-  { tier:2, name:'Avrupa Merkez Bankası Kararı',
-    desc:'ECB\'nin açıklaması hem euronun hem İngiliz sterlinin seyrini değiştirdi.',
-    outcomes:{ EUR:{min:-15,max:15}, STERLIN:{min:-10,max:12} } },
-  { tier:2, name:'Türkiye Merkez Bankası Olağanüstü Toplantısı',
-    desc:'Olağanüstü faiz kararı döviz kurlarında ani hareketlere neden oldu.',
-    outcomes:{ USD:{min:-18,max:20}, EUR:{min:-16,max:18}, STERLIN:{min:-12,max:14} } },
-  { tier:2, name:'Altın Madeni Grevi',
-    desc:'Güney Afrika\'daki grev altın arzını etkiledi, gümüş de bağımlılık nedeniyle dalgalandı.',
-    outcomes:{ ALTIN:{min:5,max:20}, GUMUS:{min:-5,max:15} } },
-  { tier:2, name:'ABD Enflasyon Verisi Sürpriz Yaptı',
-    desc:'Beklentilerin üzerinde gelen enflasyon dolar ve altını ters yönlerde etkiledi.',
-    outcomes:{ USD:{min:-15,max:12}, ALTIN:{min:-8,max:18} } },
-  { tier:2, name:'İngiltere Brexit Sonrası Anlaşma',
-    desc:'Yeni ticaret anlaşması sterlin ve euroda farklı etkiler doğurdu.',
-    outcomes:{ STERLIN:{min:-12,max:18}, EUR:{min:-8,max:10} } },
-  { tier:2, name:'Küresel Çip Krizi Tırmandı',
-    desc:'Yarı iletken darboğazı endüstriyel metallere olan talebi dönüştürdü.',
-    outcomes:{ GUMUS:{min:8,max:20}, ALTIN:{min:-5,max:10}, USD:{min:-4,max:8} } },
-  { tier:2, name:'OPEC Toplantısı Sonuçsuz Kaldı',
-    desc:'Anlaşmazlık petrol fiyatlarını ve dolara bağlı varlıkları sarstı.',
-    outcomes:{ USD:{min:-10,max:10}, ALTIN:{min:-6,max:14}, EUR:{min:-5,max:8} } },
-  { tier:2, name:'Japonya Yeni Politika Açıkladı',
-    desc:'BOJ\'un yeni para politikası küresel döviz dengesini bozdu.',
-    outcomes:{ USD:{min:-8,max:14}, EUR:{min:-6,max:10}, STERLIN:{min:-5,max:9} } },
-  { tier:2, name:'Türkiye Seçim Süreci Başladı',
-    desc:'Siyasi belirsizlik döviz kurlarını ve güvenli liman varlıklarını etkiledi.',
-    outcomes:{ USD:{min:5,max:18}, EUR:{min:4,max:14}, ALTIN:{min:3,max:12} } },
-  { tier:2, name:'Rusya Doğalgaz Akışını Kıstı',
-    desc:'Avrupa\'ya gaz akışının azalması enerji krizine yol açtı.',
-    outcomes:{ EUR:{min:-15,max:-3}, STERLIN:{min:-10,max:-2}, ALTIN:{min:5,max:18} } },
-  { tier:2, name:'IMF Küresel Tahminleri Revize Etti',
-    desc:'Büyüme tahminlerindeki değişim farklı varlıkları farklı yönlerde etkiledi.',
-    outcomes:{ USD:{min:-8,max:12}, EUR:{min:-6,max:10}, ALTIN:{min:-5,max:8}, GUMUS:{min:-4,max:7} } },
-
-  // ─── TİER 3: Karmaşık (4+ birim, yüksek risk, beklenmedik sonuçlar) ───────
-  { tier:3, name:'Küresel Finansal Kriz Sinyalleri',
-    desc:'Büyük bankalardan gelen stres testleri piyasalarda panik yarattı. Her varlık kendi dinamiğiyle hareket etti.',
-    outcomes:{ USD:{min:-20,max:25}, EUR:{min:-18,max:15}, ALTIN:{min:-10,max:30}, GUMUS:{min:-15,max:20}, STERLIN:{min:-20,max:12} } },
-  { tier:3, name:'Çin-ABD Ticaret Savaşı Tırmandı',
-    desc:'Yeni tarifeler tüm varlık sınıflarını sarstı; kazanan ve kaybeden tahmin edilemez oldu.',
-    outcomes:{ USD:{min:-18,max:20}, EUR:{min:-12,max:14}, ALTIN:{min:-8,max:25}, GUMUS:{min:-10,max:18}, STERLIN:{min:-10,max:12} } },
-  { tier:3, name:'Orta Doğu\'da Büyük Çatışma',
-    desc:'Bölgesel istikrarsızlık petrol fiyatlarını vurdu, güvenli liman arayışı karmaşık sonuçlar doğurdu.',
-    outcomes:{ USD:{min:5,max:22}, ALTIN:{min:8,max:28}, GUMUS:{min:3,max:16}, EUR:{min:-15,max:5}, STERLIN:{min:-12,max:4} } },
-  { tier:3, name:'Küresel Salgın Uyarısı',
-    desc:'DSÖ acil durum ilan etti. Piyasalar çılgına döndü; her birim kendi stres dinamiğiyle hareket etti.',
-    outcomes:{ USD:{min:-15,max:25}, EUR:{min:-20,max:10}, ALTIN:{min:10,max:35}, GUMUS:{min:-12,max:20}, STERLIN:{min:-18,max:8} } },
-  { tier:3, name:'Büyük Merkez Bankası Koordinasyonu',
-    desc:'G7 merkez bankaları eş zamanlı karar aldı. Etkileri birbirini hem güçlendirdi hem kesti.',
-    outcomes:{ USD:{min:-20,max:20}, EUR:{min:-15,max:18}, STERLIN:{min:-14,max:16}, ALTIN:{min:-18,max:22}, GUMUS:{min:-12,max:16} } },
-  { tier:3, name:'Yapay Zeka Hisse Balonu Patladı',
-    desc:'Tech sektöründeki çöküş kıymetli metallere kaçışa yol açtı ama dövizler karmaşık tepkiler verdi.',
-    outcomes:{ ALTIN:{min:15,max:35}, GUMUS:{min:10,max:25}, USD:{min:-15,max:10}, EUR:{min:-10,max:8}, STERLIN:{min:-8,max:10} } },
-  { tier:3, name:'Küresel Enerji Dönüşüm Krizi',
-    desc:'Fosil yakıt kısıtlamaları ve yenilenebilir enerji geçiş sorunları her piyasayı ayrı vurdu.',
-    outcomes:{ EUR:{min:-18,max:10}, STERLIN:{min:-15,max:8}, GUMUS:{min:8,max:25}, ALTIN:{min:5,max:18}, USD:{min:-8,max:15} } },
-  { tier:3, name:'Çoklu Ülke Borç Krizi',
-    desc:'Üç gelişmekte olan ülkenin eş zamanlı temerrüdü domino etkisi yarattı.',
-    outcomes:{ USD:{min:10,max:28}, ALTIN:{min:8,max:25}, EUR:{min:-20,max:-5}, STERLIN:{min:-18,max:-3}, GUMUS:{min:-10,max:15} } },
-  { tier:3, name:'Siber Saldırı: Küresel Finans Sistemi',
-    desc:'Büyük borsalar ve SWIFT sistemine saldırı tüm piyasaları felç etti.',
-    outcomes:{ USD:{min:-25,max:30}, EUR:{min:-20,max:15}, ALTIN:{min:15,max:40}, GUMUS:{min:10,max:28}, STERLIN:{min:-18,max:12} } },
+  { name:"Amerika Türkiye'ye Yaptırım Uyguladı", affected:['USD','EUR'],         risk:15 },
+  { name:'Türkiye Doğalgaz Rezervi Buldu',        affected:['USD','EUR'],         risk:12 },
+  { name:'Avrupa Merkez Bankası Faiz Artırdı',    affected:['EUR','STERLIN'],     risk:18 },
+  { name:'Küresel Altın Talebi Arttı',            affected:['ALTIN','USD'],       risk:20 },
+  { name:'Gümüş Endüstriyel Talebi Patladı',      affected:['GUMUS','ALTIN'],     risk:18 },
+  { name:'İngiltere Ekonomik Kriz Yaşıyor',       affected:['STERLIN','EUR'],     risk:25 },
+  { name:'ABD Enflasyon Beklentinin Üstünde',     affected:['USD','ALTIN'],       risk:15 },
+  { name:'Türkiye Turizm Rekoru Kırdı',           affected:['USD','EUR'],         risk:10 },
+  { name:'Petrol Fiyatları Düştü',                affected:['USD','EUR','ALTIN'], risk:12 },
+  { name:'AB Genişleme Planı Açıkladı',           affected:['EUR','STERLIN'],     risk:14 },
+  { name:'Altın Madeni Felaketi',                 affected:['ALTIN','GUMUS'],     risk:22 },
+  { name:'Gümüş Madeni Grevi',                    affected:['GUMUS'],             risk:20 },
+  { name:'İngiltere Brexit Güncelledi',           affected:['STERLIN','EUR'],     risk:16 },
+  { name:'Türkiye İhracat Rekoru Kırdı',          affected:['USD','EUR'],         risk:11 },
+  { name:'ABD Tahvil Faizleri Yükseldi',          affected:['USD','ALTIN'],       risk:13 },
+  { name:'Küresel Salgın Endişesi',               affected:['ALTIN','USD','EUR'], risk:30 },
+  { name:'Fed Faiz İndirdi',                      affected:['USD','ALTIN'],       risk:17 },
+  { name:'Çin Ekonomik Büyüme Açıkladı',          affected:['ALTIN','GUMUS'],     risk:14 },
+  { name:'Avrupa Enerji Krizi',                   affected:['EUR','STERLIN'],     risk:20 },
+  { name:'Küresel Ticaret Savaşı',                affected:['USD','EUR','ALTIN'], risk:25 },
+  { name:'Merkez Bankası Faiz Artırımı',          affected:['USD','EUR'],         risk:19 },
+  { name:'Altın Üretimi Azaldı',                  affected:['ALTIN','GUMUS'],     risk:15 },
+  { name:'Yeşil Enerji Dönüşümü',                affected:['GUMUS'],             risk:16 },
+  { name:'Küresel Resesyon Korkusu',              affected:['USD','EUR','GUMUS'], risk:22 },
 ];
-
-// Tur bazlı olay seçimi
-function getEventsForRound(round) {
-  if (round <= 4)  return EVENTS.filter(e => e.tier === 1);
-  if (round <= 9)  return EVENTS.filter(e => e.tier <= 2);
-  return EVENTS; // 10+ tüm tier'lar
-}
-
 
 const rooms = {};
 
@@ -236,19 +148,10 @@ function startTmr(room) {
 
 // ── Olay ──────────────────────────────────────────────────────────────────────
 function drawEvent(room) {
-  const gs     = room.gameState;
-  const pool   = getEventsForRound(gs.round);
-  const ev     = pool[Math.floor(Math.random() * pool.length)];
-  gs.event     = ev;
-  gs.pending   = {};
-  // Her birimin kendi min/max aralığından rastgele değer üret
-  Object.entries(ev.outcomes).forEach(([c, range]) => {
-    if (c === 'TL') return;
-    const { min, max } = range;
-    gs.pending[c] = min + Math.random() * (max - min);
-  });
-  // affected listesini outcomes anahtarlarından türet (eski uyumluluk için)
-  gs.event = { ...ev, affected: Object.keys(ev.outcomes).filter(c => c !== 'TL') };
+  const ev = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+  const gs = room.gameState;
+  gs.event = ev; gs.pending = {};
+  ev.affected.forEach(c => { gs.pending[c] = (Math.random() * 2 - 1) * ev.risk; });
 }
 
 // ── Kurlar + BOOM ─────────────────────────────────────────────────────────────
@@ -354,8 +257,7 @@ function broadcast(room) {
     const sock = io.sockets.sockets.get(p.socketId); if (!sock) return;
     sock.emit('gameState', {
       round: gs.round, rates: {...gs.rates}, lastChanges: gs.lastChanges || {},
-      event: gs.event, pending: gs.pending ? {...gs.pending} : null,
-      curSid: cp?.socketId, curName: cp?.name,
+      event: gs.event, curSid: cp?.socketId, curName: cp?.name,
       isMyTurn: p.socketId === cp?.socketId, timerMs: rem,
       rateHistory: gs.rateHistory || {},
       players: room.players.map(q => ({
