@@ -354,7 +354,8 @@ function broadcast(room) {
     const sock = io.sockets.sockets.get(p.socketId); if (!sock) return;
     sock.emit('gameState', {
       round: gs.round, rates: {...gs.rates}, lastChanges: gs.lastChanges || {},
-      event: gs.event, curSid: cp?.socketId, curName: cp?.name,
+      event: gs.event, pending: gs.pending ? {...gs.pending} : null,
+      curSid: cp?.socketId, curName: cp?.name,
       isMyTurn: p.socketId === cp?.socketId, timerMs: rem,
       rateHistory: gs.rateHistory || {},
       players: room.players.map(q => ({
