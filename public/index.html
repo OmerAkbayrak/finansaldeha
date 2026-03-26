@@ -908,13 +908,34 @@ function renderGame(data){
   }).join('');
 
   if(event){
+    const evOutcomes = event.outcomes || {};
+    const evAffected = event.affected || Object.keys(evOutcomes).filter(c=>c!=='TL');
+    const evPending  = data.pending || {};
+    const chips = evAffected.map(c => {
+      const out = evOutcomes[c];
+      // pending'de değer varsa gerçek, yoksa outcomes aralığından tahmin
+      let chg = evPending[c];
+      let isEst = false;
+      if(chg===undefined&&out){ chg=(out.min+out.max)/2; isEst=true; }
+      if(chg===undefined) return `<span style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:.73rem;color:var(--txt2)">${CLBL[c]||c}</span>`;
+      const pos  = chg>0;
+      const col  = pos?'var(--green)':'var(--red)';
+      const arr  = pos?'▲':'▼';
+      let riskIcon='';
+      if(out){ const span=Math.abs(out.max-out.min); riskIcon=span<10?'🟢':span<22?'🟡':'🔴'; }
+      return `<div style="background:var(--bg);border:1.5px solid ${col}55;border-radius:7px;padding:4px 8px;font-size:.74rem">
+        <span style="font-weight:700">${CLBL[c]||c}</span>
+        <span style="color:${col};font-weight:700;margin-left:4px">${arr}%${Math.abs(chg).toFixed(1)}${isEst?'~':''}</span>
+        ${riskIcon?`<span style="margin-left:3px;font-size:.68rem">${riskIcon}</span>`:''}
+        ${out?`<div style="font-size:.65rem;color:var(--txt2)">%${out.min}~%${out.max}</div>`:''}
+      </div>`;
+    }).filter(Boolean).join('');
+
     document.getElementById('eventCard').innerHTML=`
       <div class="event-title">⚡ ${event.name}</div>
-      <div style="font-size:.83rem;color:var(--txt2);margin-top:7px">
-        Etkilenen: ${event.affected.map(c=>`<b style="color:var(--gold)">${CLBL[c]||c}</b>`).join(', ')} &nbsp;|&nbsp;
-        Risk: <b style="color:var(--red)">±${event.risk}%</b>
-      </div>
-      <div style="font-size:.76rem;color:var(--txt2);margin-top:4px">💡 Kurlar tur sonunda uygulanır. Her turda %1 ihtimalle BOOM!</div>`;
+      ${event.desc?`<div style="font-size:.79rem;color:var(--txt2);margin-top:4px;margin-bottom:8px">${event.desc}</div>`:''}
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${chips}</div>
+      <div style="font-size:.72rem;color:var(--txt2);margin-top:8px">💡 Kurlar tur sonunda uygulanır &nbsp;·&nbsp; 🎲 ~%1 ihtimalle BOOM!</div>`;
   }
 
   if(mp){
@@ -991,29 +1012,55 @@ function openBuySell(){
   hideTxLoading();
 
   // Olay bilgisini göster
-  const ev = gsd?.event;
+  const ev      = gsd?.event;
   const pending = gsd?.pending || {};
-  const evBox = document.getElementById('txEventInfo');
+  const evBox   = document.getElementById('txEventInfo');
+
   if(ev && ev.name){
     document.getElementById('txEventName').textContent = ev.name;
     document.getElementById('txEventDesc').textContent = ev.desc || '';
-    const affected = ev.affected || [];
-    document.getElementById('txEventOutcomes').innerHTML = affected.map(c => {
-      const chg = pending[c];
-      if(chg === undefined) return '';
-      const isPos = chg > 0;
+
+    // Etkilenen birimler: önce pending'den, yoksa outcomes'dan, yoksa affected'dan al
+    const outcomes = ev.outcomes || {};
+    const affected = ev.affected || Object.keys(outcomes).filter(c=>c!=='TL');
+
+    const chips = affected.map(c => {
+      // Beklenen değişim: pending'de varsa gerçek değer, yoksa outcomes aralığının ortası
+      let chg = pending[c];
+      let isEstimate = false;
+      if(chg === undefined || chg === null){
+        if(outcomes[c]){
+          chg = (outcomes[c].min + outcomes[c].max) / 2;
+          isEstimate = true;
+        } else return '';
+      }
+
+      const isPos  = chg > 0;
+      const col    = isPos ? 'var(--green)' : 'var(--red)';
+      const arrow  = isPos ? '▲' : '▼';
       const absChg = Math.abs(chg).toFixed(1);
-      const col = isPos ? 'var(--green)' : 'var(--red)';
-      const arrow = isPos ? '↑' : '↓';
-      // Risk seviyesi
-      const absMax = Math.max(...affected.map(x => Math.abs(pending[x]||0)));
-      const riskPct = absMax > 0 ? (Math.abs(chg)/absMax*100).toFixed(0) : 50;
-      return `<div style="background:var(--card);border:1px solid ${col}33;border-radius:7px;padding:5px 9px;font-size:.75rem;display:flex;align-items:center;gap:5px">
-        <span style="font-weight:700;color:${col}">${arrow} ${CLBL[c]||c}</span>
-        <span style="color:${col}">%${absChg}</span>
-        <span style="color:var(--txt2);font-size:.68rem">(risk %${riskPct})</span>
+
+      // Risk yüzdesi: outcomes.max - outcomes.min aralığı büyüklüğü
+      let riskLabel = '';
+      if(outcomes[c]){
+        const span = Math.abs(outcomes[c].max - outcomes[c].min);
+        if(span < 10)      riskLabel = '🟢 Düşük Risk';
+        else if(span < 22) riskLabel = '🟡 Orta Risk';
+        else               riskLabel = '🔴 Yüksek Risk';
+      }
+
+      return `<div style="background:var(--card);border:1.5px solid ${col}55;border-radius:8px;padding:6px 10px;font-size:.76rem;min-width:100px">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+          <span style="font-weight:700;font-size:.88rem">${CLBL[c]||c}</span>
+          <span style="color:${col};font-weight:700">${arrow} %${absChg}${isEstimate?'*':''}</span>
+        </div>
+        ${riskLabel?`<div style="font-size:.68rem;color:var(--txt2)">${riskLabel}</div>`:''}
+        ${outcomes[c]?`<div style="font-size:.67rem;color:var(--txt2)">Aralık: %${outcomes[c].min.toFixed(0)} / %${outcomes[c].max.toFixed(0)}</div>`:''}
       </div>`;
-    }).join('');
+    }).filter(Boolean).join('');
+
+    document.getElementById('txEventOutcomes').innerHTML = chips ||
+      '<span style="color:var(--txt2);font-size:.78rem">Etkilenen birim yok</span>';
     evBox.style.display = 'block';
   } else {
     evBox.style.display = 'none';
