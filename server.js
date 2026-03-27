@@ -36,66 +36,32 @@ const BOT_TAUNTS = [
   'Git kitap falan oku kanka'
 ];
 
-// ── Olay Kartları (tier bazlı) ────────────────────────────────────────────────
-// Her olay: { tier, name, affected:[], risk }
-// risk = o olayın maksimum etki yüzdesi. drawEvent'te her birim ±risk aralığında rastgele değişir.
 const EVENTS = [
-  // ─── TİER 1 (tur 1-7): Temel olaylar, maks ±%15 ──────────────────────────
-  { tier:1, name:"ABD Merkez Bankası faiz politikasını gözden geçireceğini açıkladı",
-    affected:['USD','ALTIN'], risk:10 },
-  { tier:1, name:"Avrupa'da enerji fiyatları yeniden dalgalanmaya başladı",
-    affected:['EUR','ALTIN'], risk:12 },
-  { tier:1, name:"İngiltere ticaret anlaşmalarını yeniden müzakereye açtı",
-    affected:['STERLIN','USD'], risk:11 },
-  { tier:1, name:"Küresel enflasyon beklentileri beklenmedik şekilde değişti",
-    affected:['ALTIN','USD'], risk:13 },
-  { tier:1, name:"Gümüşe olan endüstriyel talepte belirsizlik oluştu",
-    affected:['GUMUS','USD'], risk:9 },
-  { tier:1, name:"ABD ekonomik büyüme verileri beklentilerin dışında geldi",
-    affected:['USD','ALTIN'], risk:14 },
-  { tier:1, name:"Avrupa Merkez Bankası yeni bir ekonomik paket üzerinde çalıştığını duyurdu",
-    affected:['EUR','ALTIN'], risk:11 },
-
-  // ─── TİER 2 (tur 7-14): Orta olaylar, maks ±%20 ─────────────────────────
-  { tier:2, name:"Çin ve ABD arasındaki ticaret görüşmeleri yeniden başladı",
-    affected:['USD','ALTIN','GUMUS'], risk:16 },
-  { tier:2, name:"Avrupa'da bankacılık sektörüyle ilgili yeni düzenlemeler gündeme geldi",
-    affected:['EUR','ALTIN','STERLIN'], risk:15 },
-  { tier:2, name:"Orta Doğu'daki jeopolitik gerilimler yeniden tırmandı",
-    affected:['ALTIN','USD','EUR'], risk:18 },
-  { tier:2, name:"Küresel resesyon ihtimali yeniden tartışılmaya başlandı",
-    affected:['ALTIN','USD','GUMUS'], risk:17 },
-  { tier:2, name:"İngiltere ve Avrupa Birliği arasında yeni bir ekonomik iş birliği görüşülüyor",
-    affected:['STERLIN','EUR','USD'], risk:14 },
-  { tier:2, name:"Büyük teknoloji şirketleri beklenmedik finansal sonuçlar açıkladı",
-    affected:['USD','GUMUS','ALTIN'], risk:19 },
-  { tier:2, name:"Enerji piyasalarında arz-talep dengesi belirsizleşti",
-    affected:['EUR','ALTIN','USD'], risk:16 },
-
-  // ─── TİER 3 (tur 14-20): Karmaşık olaylar, maks ±%30 ────────────────────
-  { tier:3, name:"Küresel finans sisteminde büyük bir regülasyon değişikliği tartışılmaya başlandı",
-    affected:['USD','EUR','ALTIN','GUMUS'], risk:24 },
-  { tier:3, name:"Büyük ekonomiler arasında ticaret savaşlarının yeniden başlayabileceği sinyalleri geldi",
-    affected:['USD','EUR','ALTIN','STERLIN'], risk:27 },
-  { tier:3, name:"Uluslararası ödeme sistemlerinde alternatif bir yapı kurulması gündeme geldi",
-    affected:['USD','EUR','ALTIN','GUMUS'], risk:22 },
-  { tier:3, name:"Dünya genelinde borç krizi ihtimali ciddi şekilde tartışılmaya başlandı",
-    affected:['USD','EUR','ALTIN','STERLIN'], risk:28 },
-  { tier:3, name:"Küresel enerji krizi ihtimali yeniden yükseldi",
-    affected:['EUR','ALTIN','USD','GUMUS'], risk:25 },
-  { tier:3, name:"Büyük merkez bankaları koordineli bir politika değişikliği sinyali verdi",
-    affected:['USD','EUR','ALTIN','STERLIN'], risk:29 },
-  { tier:3, name:"Jeopolitik bloklaşmaların ekonomik sisteme etkileri artmaya başladı",
-    affected:['USD','EUR','ALTIN','GUMUS'], risk:23 },
+  { name:"Amerika Türkiye'ye Yaptırım Uyguladı", affected:['USD','EUR'],         risk:15 },
+  { name:'Türkiye Doğalgaz Rezervi Buldu',        affected:['USD','EUR'],         risk:12 },
+  { name:'Avrupa Merkez Bankası Faiz Artırdı',    affected:['EUR','STERLIN'],     risk:18 },
+  { name:'Küresel Altın Talebi Arttı',            affected:['ALTIN','USD'],       risk:20 },
+  { name:'Gümüş Endüstriyel Talebi Patladı',      affected:['GUMUS','ALTIN'],     risk:18 },
+  { name:'İngiltere Ekonomik Kriz Yaşıyor',       affected:['STERLIN','EUR'],     risk:25 },
+  { name:'ABD Enflasyon Beklentinin Üstünde',     affected:['USD','ALTIN'],       risk:15 },
+  { name:'Türkiye Turizm Rekoru Kırdı',           affected:['USD','EUR'],         risk:10 },
+  { name:'Petrol Fiyatları Düştü',                affected:['USD','EUR','ALTIN'], risk:12 },
+  { name:'AB Genişleme Planı Açıkladı',           affected:['EUR','STERLIN'],     risk:14 },
+  { name:'Altın Madeni Felaketi',                 affected:['ALTIN','GUMUS'],     risk:22 },
+  { name:'Gümüş Madeni Grevi',                    affected:['GUMUS'],             risk:20 },
+  { name:'İngiltere Brexit Güncelledi',           affected:['STERLIN','EUR'],     risk:16 },
+  { name:'Türkiye İhracat Rekoru Kırdı',          affected:['USD','EUR'],         risk:11 },
+  { name:'ABD Tahvil Faizleri Yükseldi',          affected:['USD','ALTIN'],       risk:13 },
+  { name:'Küresel Salgın Endişesi',               affected:['ALTIN','USD','EUR'], risk:30 },
+  { name:'Fed Faiz İndirdi',                      affected:['USD','ALTIN'],       risk:17 },
+  { name:'Çin Ekonomik Büyüme Açıkladı',          affected:['ALTIN','GUMUS'],     risk:14 },
+  { name:'Avrupa Enerji Krizi',                   affected:['EUR','STERLIN'],     risk:20 },
+  { name:'Küresel Ticaret Savaşı',                affected:['USD','EUR','ALTIN'], risk:25 },
+  { name:'Merkez Bankası Faiz Artırımı',          affected:['USD','EUR'],         risk:19 },
+  { name:'Altın Üretimi Azaldı',                  affected:['ALTIN','GUMUS'],     risk:15 },
+  { name:'Yeşil Enerji Dönüşümü',                affected:['GUMUS'],             risk:16 },
+  { name:'Küresel Resesyon Korkusu',              affected:['USD','EUR','GUMUS'], risk:22 },
 ];
-
-// Tur bazlı olay havuzu
-function getEventsForRound(round) {
-  if (round <= 7)  return EVENTS.filter(e => e.tier === 1);
-  if (round <= 14) return EVENTS.filter(e => e.tier === 2);
-  if (round <= 20) return EVENTS.filter(e => e.tier === 3);
-  return EVENTS; // 20+ hepsinden karışık
-}
 
 const rooms = {};
 
@@ -182,16 +148,10 @@ function startTmr(room) {
 
 // ── Olay ──────────────────────────────────────────────────────────────────────
 function drawEvent(room) {
-  const gs   = room.gameState;
-  const pool = getEventsForRound(gs.round);
-  const ev   = pool[Math.floor(Math.random() * pool.length)];
-  gs.event   = ev;
-  gs.pending = {};
-  // Her etkilenen birim için ±risk aralığında rastgele değişim
-  ev.affected.forEach(c => {
-    if (c === 'TL') return;
-    gs.pending[c] = (Math.random() * 2 - 1) * ev.risk;
-  });
+  const ev = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+  const gs = room.gameState;
+  gs.event = ev; gs.pending = {};
+  ev.affected.forEach(c => { gs.pending[c] = (Math.random() * 2 - 1) * ev.risk; });
 }
 
 // ── Kurlar + BOOM ─────────────────────────────────────────────────────────────
@@ -297,8 +257,7 @@ function broadcast(room) {
     const sock = io.sockets.sockets.get(p.socketId); if (!sock) return;
     sock.emit('gameState', {
       round: gs.round, rates: {...gs.rates}, lastChanges: gs.lastChanges || {},
-      event: gs.event, pending: gs.pending ? {...gs.pending} : null,
-      curSid: cp?.socketId, curName: cp?.name,
+      event: gs.event, curSid: cp?.socketId, curName: cp?.name,
       isMyTurn: p.socketId === cp?.socketId, timerMs: rem,
       rateHistory: gs.rateHistory || {},
       players: room.players.map(q => ({
