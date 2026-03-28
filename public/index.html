@@ -215,8 +215,27 @@ flex-shrink:0;display:inline-block;vertical-align:middle}
   <!-- Bağlantı durumu -->
   <div id="connStatus"><div id="connDot"></div><span id="connTxt">Bağlı</span></div>
 
+  <!-- Tanıtım Ekranı -->
+  <div id="sIntro" class="screen">
+    <div class="card" style="max-width:540px;margin:0 auto;min-height:360px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div style="display:flex;gap:6px" id="introDots"></div>
+          <span style="font-size:.75rem;color:var(--txt2)" id="introCounter">1 / 6</span>
+        </div>
+        <div id="introIcon" style="font-size:3rem;margin-bottom:14px;text-align:center">💱</div>
+        <h2 id="introTitle" style="font-family:'Space Mono',monospace;font-size:1.2rem;color:var(--gold);margin-bottom:12px;text-align:center">Kur Savaşları</h2>
+        <p id="introText" style="color:var(--txt2);font-size:.9rem;line-height:1.7;text-align:center"></p>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:24px">
+        <button class="btn btn-sec" id="introPrevBtn" onclick="introPrev()" style="flex:1;opacity:0;pointer-events:none">← Geri</button>
+        <button class="btn" id="introNextBtn" onclick="introNext()" style="flex:2">İleri →</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Ana Menü -->
-  <div id="sHome" class="screen">
+  <div id="sHome" class="screen hidden">
     <div class="card" style="max-width:460px;margin:0 auto">
       <label>Adınız</label>
       <input type="text" id="nameInput" placeholder="İsim girin..." maxlength="20" onkeydown="if(event.key==='Enter')createRoom()" style="margin-bottom:16px">
@@ -391,9 +410,18 @@ flex-shrink:0;display:inline-block;vertical-align:middle}
 <!-- Al/Sat -->
 <div class="modal" id="buySellModal">
   <div class="modal-inner">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px">
       <div class="modal-title" style="margin-bottom:0">💱 Al / Sat</div>
-      <div id="txTimerBadge" style="font-family:'Space Mono',monospace;font-size:.85rem;background:rgba(255,215,0,.12);border:1px solid var(--gold);border-radius:8px;padding:4px 10px;color:var(--gold)">⏳ —</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <div id="txEventBadge" style="display:none;background:rgba(255,100,50,.1);border:1px solid rgba(255,100,50,.4);border-radius:8px;padding:4px 9px;font-size:.74rem;color:#ff9966;line-height:1.4;max-width:180px"></div>
+        <div id="txTimerBadge" style="font-family:'Space Mono',monospace;font-size:.85rem;background:rgba(255,215,0,.12);border:1px solid var(--gold);border-radius:8px;padding:4px 10px;color:var(--gold);white-space:nowrap">⏳ —</div>
+      </div>
+    </div>
+    <div id="txEventInfo" style="display:none;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.3);border-radius:10px;padding:11px 13px;margin-bottom:12px">
+      <div style="font-size:.72rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">⚡ Aktif Olay Riski</div>
+      <div id="txEventName" style="font-size:.82rem;font-weight:700;margin-bottom:6px"></div>
+      <div id="txEventDesc" style="font-size:.75rem;color:var(--txt2);margin-bottom:8px;line-height:1.5"></div>
+      <div id="txEventOutcomes" style="display:flex;flex-wrap:wrap;gap:5px"></div>
     </div>
     <label>İşlem Türü</label>
     <select id="txType" onchange="calcEx()"><option value="buy">Satın Al</option><option value="sell">Sat</option></select>
@@ -577,9 +605,54 @@ function notify(msg,type='info',dur=4000){
   setTimeout(()=>el.remove(),dur);
 }
 
+// ── Tanıtım Ekranı ────────────────────────────────────────────────────────────
+const INTRO_SLIDES = [
+  { icon:'💱', title:'Kur Savaşları\'na Hoş Geldin!',
+    text:'Gerçek döviz kurları üzerinden yatırım yaparak hedefine ulaşmaya çalış. İlk hedefini tamamlayan oyuncu kazanır!' },
+  { icon:'🎯', title:'Hedef Kartın',
+    text:'Her oyuncu bir başlangıç ve hedef kart alır. Başlangıç kartındaki para birimiyle işe koyul; hedef kartındaki miktara ulaş!' },
+  { icon:'⚡', title:'Olay Kartları',
+    text:'Her tur başında bir olay çekilir. Olaylar birden fazla birimi etkiler — hem yükseliş hem düşüş aynı anda yaşanabilir. Olayı okuyarak doğru hamleni yap!' },
+  { icon:'📊', title:'Al / Sat',
+    text:'Sıra sende olduğunda Al/Sat yapabilirsin. Aktif olay kartındaki risk yüzdelerini Al/Sat panelinde görebilirsin — riske göre karar ver!' },
+  { icon:'🎲', title:'Tur Sistemi & Zorluk',
+    text:'Erken turlarda temel olaylar yaşanır. Oyun ilerledikçe daha karmaşık, çok birimli olaylarla karşılaşırsın. Strateji önemli!' },
+  { icon:'💳', title:'Kredi & Rekabet',
+    text:'Acil durumda 10.000 TL kredi çekebilirsin — ama 2 tur sonra geri ödenmeli! Ödeyemezsen elenirsin. Rakiplerini geç, ilk bitiren kazan!' },
+];
+let introStep = 0;
+
+function renderIntro() {
+  const s = INTRO_SLIDES[introStep];
+  document.getElementById('introIcon').textContent  = s.icon;
+  document.getElementById('introTitle').textContent = s.title;
+  document.getElementById('introText').textContent  = s.text;
+  document.getElementById('introCounter').textContent = `${introStep+1} / ${INTRO_SLIDES.length}`;
+  // Dots
+  document.getElementById('introDots').innerHTML = INTRO_SLIDES.map((_,i)=>
+    `<div style="width:${i===introStep?20:8}px;height:8px;border-radius:4px;background:${i===introStep?'var(--gold)':'var(--border)'};transition:all .3s"></div>`
+  ).join('');
+  // Geri butonu
+  const pb = document.getElementById('introPrevBtn');
+  pb.style.opacity = introStep > 0 ? '1' : '0';
+  pb.style.pointerEvents = introStep > 0 ? 'auto' : 'none';
+  // İleri butonu
+  const nb = document.getElementById('introNextBtn');
+  nb.textContent = introStep === INTRO_SLIDES.length - 1 ? '🚀 Başla!' : 'İleri →';
+}
+function introNext() {
+  if (introStep < INTRO_SLIDES.length - 1) { introStep++; renderIntro(); }
+  else { showScreen('sHome'); }
+}
+function introPrev() {
+  if (introStep > 0) { introStep--; renderIntro(); }
+}
+
 // ── Ekran ─────────────────────────────────────────────────────────────────────
 function showScreen(id){
-  ['sHome','sJoin','sLobby','sGame','sEnd'].forEach(s=>document.getElementById(s).classList.add('hidden'));
+  ['sIntro','sHome','sJoin','sLobby','sGame','sEnd'].forEach(s=>{
+    const el=document.getElementById(s); if(el) el.classList.add('hidden');
+  });
   document.getElementById(id).classList.remove('hidden');
 }
 function getMyName(){
@@ -838,13 +911,18 @@ function renderGame(data){
   }).join('');
 
   if(event){
+    const affected = event.affected || [];
+    const chips = affected.map(c =>
+      `<span style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:4px 9px;font-size:.78rem;color:var(--txt)">${CLBL[c]||c}</span>`
+    ).join('');
+
     document.getElementById('eventCard').innerHTML=`
       <div class="event-title">⚡ ${event.name}</div>
-      <div style="font-size:.83rem;color:var(--txt2);margin-top:7px">
-        Etkilenen: ${event.affected.map(c=>`<b style="color:var(--gold)">${CLBL[c]||c}</b>`).join(', ')} &nbsp;|&nbsp;
-        Risk: <b style="color:var(--red)">±${event.risk}%</b>
+      <div style="font-size:.8rem;color:var(--txt2);margin-top:6px">
+        <span>Etkilenebilecek birimler:</span>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">${chips}</div>
       </div>
-      <div style="font-size:.76rem;color:var(--txt2);margin-top:4px">💡 Kurlar tur sonunda uygulanır. Her turda %1 ihtimalle BOOM!</div>`;
+      <div style="font-size:.74rem;color:var(--txt2);margin-top:7px">⚠️ Risk: <b style="color:var(--gold)">±%${event.risk}</b> &nbsp;·&nbsp; 💡 Kurlar tur sonunda uygulanır &nbsp;·&nbsp; 🎲 ~%1 BOOM!</div>`;
   }
 
   if(mp){
@@ -919,6 +997,37 @@ function openBuySell(){
   document.getElementById('txAmt').value='';
   document.getElementById('txPayAmt').value='';
   hideTxLoading();
+
+  // Süre badge yanındaki olay özet badge
+  const ev      = gsd?.event;
+  const pending = gsd?.pending || {};
+  const evBadge = document.getElementById('txEventBadge');
+  const evBox   = document.getElementById('txEventInfo');
+
+  if(ev && ev.name){
+    const affected = ev.affected || [];
+    // Küçük badge: "⚡ ±%12 | USD Altın Gümüş"
+    const names = affected.map(c => CLBL[c]||c).join(' · ');
+    if(evBadge){
+      evBadge.innerHTML = `⚡ <b>±%${ev.risk}</b><br><span style="font-size:.68rem">${names}</span>`;
+      evBadge.style.display = 'block';
+    }
+
+    // Büyük panel: olay adı + etkilenen birimler + risk
+    document.getElementById('txEventName').textContent = ev.name;
+    if(document.getElementById('txEventDesc'))
+      document.getElementById('txEventDesc').textContent = '';
+    const chips = affected.map(c =>
+      `<span style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:4px 9px;font-size:.78rem">${CLBL[c]||c}</span>`
+    ).join('');
+    document.getElementById('txEventOutcomes').innerHTML =
+      `${chips}<div style="width:100%;margin-top:6px;font-size:.74rem;color:var(--gold)">⚠️ Risk faktörü: ±%${ev.risk}</div>`;
+    evBox.style.display = 'block';
+  } else {
+    if(evBadge) evBadge.style.display = 'none';
+    evBox.style.display = 'none';
+  }
+
   calcEx();
   document.getElementById('buySellModal').classList.add('active');
 }
@@ -1038,7 +1147,11 @@ function execGive(){
 }
 
 // Avatar başlangıç yüklemesi
-document.addEventListener('DOMContentLoaded', initAvatars);
+document.addEventListener('DOMContentLoaded', () => {
+  initAvatars();
+  renderIntro();
+  showScreen('sIntro');
+});
 </script>
 </body>
 </html>
