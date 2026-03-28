@@ -97,7 +97,55 @@ function getEventsForRound(round) {
   return EVENTS; // 20+ hepsinden karışık
 }
 
-const rooms = {};
+// ── Kur çekme yardımcısı (built-in https, kurulum gerektirmez) ───────────────
+const https = require('https');
+
+function httpsGet(url, timeoutMs = 6000) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'KurSavasları/1.0' } }, res => {
+      if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return; }
+      let body = '';
+      res.on('data', d => body += d);
+      res.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(e); } });
+    });
+    req.setTimeout(timeoutMs, () => { req.destroy(); reject(new Error('timeout')); });
+    req.on('error', reject);
+  });
+}
+
+async function fetchRates() {
+  // Kaynak 1: exchangerate-api (ücretsiz, kayıt gerektirmez)
+  try {
+    const d = await httpsGet('https://api.exchangerate-api.com/v4/latest/TRY');
+    if (d && d.rates && d.rates.USD) {
+      const USD     = Math.round((1 / d.rates.USD) * 100) / 100;
+      const EUR     = Math.round((1 / d.rates.EUR) * 100) / 100;
+      const STERLIN = Math.round((1 / d.rates.GBP) * 100) / 100;
+      const ALTIN   = Math.round((3300 * USD) / 31.1035);
+      const GUMUS   = Math.round(((33 * USD) / 31.1035) * 100) / 100;
+      console.log(`[rates] API 1 OK → USD:${USD} EUR:${EUR} STERLIN:${STERLIN}`);
+      return { TL:1, USD, EUR, STERLIN, ALTIN, GUMUS };
+    }
+  } catch (e) { console.warn(`[rates] API 1 hata: ${e.message}`); }
+
+  // Kaynak 2: frankfurter.app (Avrupa MB verisi, ücretsiz)
+  try {
+    const d = await httpsGet('https://api.frankfurter.app/latest?from=TRY&to=USD,EUR,GBP');
+    if (d && d.rates && d.rates.USD) {
+      const USD     = Math.round((1 / d.rates.USD) * 100) / 100;
+      const EUR     = Math.round((1 / d.rates.EUR) * 100) / 100;
+      const STERLIN = Math.round((1 / d.rates.GBP) * 100) / 100;
+      const ALTIN   = Math.round((3300 * USD) / 31.1035);
+      const GUMUS   = Math.round(((33 * USD) / 31.1035) * 100) / 100;
+      console.log(`[rates] API 2 OK → USD:${USD} EUR:${EUR} STERLIN:${STERLIN}`);
+      return { TL:1, USD, EUR, STERLIN, ALTIN, GUMUS };
+    }
+  } catch (e) { console.warn(`[rates] API 2 hata: ${e.message}`); }
+
+  console.warn('[rates] Her iki API başarısız, fallback kurları kullanılıyor.');
+  return { ...FALLBACK };
+}
+
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 function genCode() {
@@ -668,19 +716,7 @@ io.on('connection', socket => {
     if (room.players.filter(p => !p.isBot).length < 1) return socket.emit('error', 'En az 1 insan oyuncu gerekli!');
     if (room.players.length < 2) return socket.emit('error', 'En az 2 oyuncu gerekli!');
 
-    let rates = { ...FALLBACK };
-    try {
-      const fetch = (await import('node-fetch')).default;
-      const res = await fetch('https://api.exchangerate-api.com/v4/latest/TRY', { signal: AbortSignal.timeout(5000) });
-      if (res.ok) {
-        const d = await res.json();
-        rates.USD     = Math.round((1 / d.rates.USD) * 100) / 100;
-        rates.EUR     = Math.round((1 / d.rates.EUR) * 100) / 100;
-        rates.STERLIN = Math.round((1 / d.rates.GBP) * 100) / 100;
-      }
-      rates.ALTIN = Math.round((3300 * rates.USD) / 31.1035);
-      rates.GUMUS = Math.round(((33 * rates.USD) / 31.1035) * 100) / 100;
-    } catch { console.warn('[rates] API hatası, fallback kullanılıyor'); }
+    let rates = await fetchRates();
 
     room.players.forEach(p => {
       const st = makeStarting(); const gl = makeGoal(st.currency, st.amount, rates);
