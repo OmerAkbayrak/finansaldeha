@@ -38,13 +38,13 @@ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 
 .av-dice:hover{border-color:var(--gold);transform:rotate(90deg)}
 
 
-.av-wrap{width:90px;height:90px;border-radius:50%;overflow:hidden;border:3px solid var(--gold);
+.av-wrap{width:90px;height:90px;border-radius:10px;overflow:hidden;border:3px solid var(--gold);
 box-shadow:0 0 20px rgba(255,215,0,.4);flex-shrink:0;transition:transform .15s,opacity .15s;background:var(--bg)}
 .av-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
-.av-sm{width:28px;height:28px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.15);
+.av-sm{width:28px;height:28px;border-radius:4px;overflow:hidden;border:2px solid rgba(255,255,255,.15);
 flex-shrink:0;display:inline-block;vertical-align:middle}
 .av-sm img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
-.av-md{width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--border);flex-shrink:0}
+.av-md{width:34px;height:34px;border-radius:5px;overflow:hidden;border:2px solid var(--border);flex-shrink:0}
 .av-md img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
 .hidden{display:none!important}
 .advice-card{background:var(--bg);border:2px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .3s}
@@ -242,8 +242,8 @@ flex-shrink:0;display:inline-block;vertical-align:middle}
       <label>Avatar</label>
       <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:6px">
         <button onclick="prevAvatar()" style="width:36px;height:36px;border-radius:50%;background:var(--bg);border:2px solid var(--border);color:var(--txt);font-size:1.1rem;cursor:pointer;flex-shrink:0;transition:border-color .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">‹</button>
-        <div id="avWrap" style="width:80px;height:80px;border-radius:50%;overflow:hidden;border:3px solid var(--gold);box-shadow:0 0 18px rgba(255,215,0,.4);background:var(--bg);transition:transform .12s,opacity .12s;flex-shrink:0">
-          <img id="avPreview" src="" style="width:100%;height:100%;object-fit:cover;display:block" alt="">
+        <div id="avWrap" style="width:80px;height:80px;border-radius:10px;overflow:hidden;border:3px solid var(--gold);box-shadow:0 0 18px rgba(255,215,0,.4);background:var(--bg);transition:transform .12s,opacity .12s;flex-shrink:0">
+          <img id="avPreview" src="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:6px" alt="">
         </div>
         <button onclick="nextAvatar()" style="width:36px;height:36px;border-radius:50%;background:var(--bg);border:2px solid var(--border);color:var(--txt);font-size:1.1rem;cursor:pointer;flex-shrink:0;transition:border-color .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">›</button>
       </div>
@@ -495,16 +495,14 @@ flex-shrink:0;display:inline-block;vertical-align:middle}
 
 <script>
 const AVATARS=[
-  {id:1,name:'Techno-Platypus',img:'/avatars/av1.png'},
-  {id:2,name:'Astral-Sloth',img:'/avatars/av2.png'},
-  {id:3,name:'Disco-Hippo',img:'/avatars/av3.png'},
-  {id:4,name:'DJ-Axolotl',img:'/avatars/av4.png'},
-  {id:5,name:'Vampire-Bunny-Panda',img:'/avatars/av5.png'},
-  {id:6,name:'Vampire-Bunny',img:'/avatars/av6.png'},
-  {id:7,name:'Steam-Panda',img:'/avatars/av7.png'},
-  {id:8,name:'Galactic-Goldfish',img:'/avatars/av8.png'},
-  {id:9,name:'Robo-Raccoon',img:'/avatars/av9.png'},
-  {id:10,name:'Party-Koala',img:'/avatars/av10.png'},
+  {id:1,name:'Kuyumcu Kedi',img:'/avatars/av1.png'},
+  {id:2,name:'Yatırımcı Tilki',img:'/avatars/av2.png'},
+  {id:3,name:'Zengin Ayı',img:'/avatars/av3.png'},
+  {id:4,name:'Fakir Eşek',img:'/avatars/av4.png'},
+  {id:5,name:'Tüccar Karga',img:'/avatars/av5.png'},
+  {id:6,name:'Cömert Fil',img:'/avatars/av6.png'},
+  {id:7,name:'Tasarrufçu Kirpi',img:'/avatars/av7.png'},
+  {id:8,name:'Borçlu Tavşan',img:'/avatars/av8.png'},
 ];
 
 let selAv = 0;
@@ -740,7 +738,7 @@ function addChat(boxId,sender,msg,sys=false,avatarImg=''){
   if(sys||!sender){
     el.innerHTML=`<span class="chat-sys">${msg}</span>`;
   } else {
-    const avHtml=avatarImg?`<div class="av-sm" style="display:inline-flex;vertical-align:middle;margin-right:4px"><img src="${avatarImg}" alt=""></div>`:'';
+    const avHtml=avatarImg?`<div class="av-sm" style="display:inline-flex;vertical-align:middle;margin-right:4px;border-radius:3px;overflow:hidden"><img src="${avatarImg}" alt=""></div>`:'';
     el.innerHTML=`${avHtml}<span class="chat-name">${sender}:</span> ${msg}`;
   }
   box.appendChild(el);box.scrollTop=box.scrollHeight;
@@ -949,7 +947,7 @@ function renderGame(data){
               :isCur?`<span class="pp-tag tag-turn">Oynuyor</span>`
               :isMe?`<span class="pp-tag tag-me">Sen</span>`:'';
     return `<div class="pp-card ${p.eliminated?'elim':p.finished?'done':isCur?'active':isMe?'me':''}">
-      <div class="pp-header"><span style="display:flex;align-items:center;gap:6px">${p.avatarImg?`<img src="${p.avatarImg}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0" alt="">`:''}<span class="pp-name">${p.isBot?'🤖 ':isMe?'👤 ':''}${p.name}</span></span>${tag}</div>
+      <div class="pp-header"><span style="display:flex;align-items:center;gap:6px">${p.avatarImg?`<img src="${p.avatarImg}" style="width:26px;height:26px;border-radius:4px;object-fit:cover;border:2px solid var(--border);flex-shrink:0" alt="">`:''}<span class="pp-name">${p.isBot?'🤖 ':isMe?'👤 ':''}${p.name}</span></span>${tag}</div>
       <div class="pp-goal">🎯 ${p.goalCard.amount.toLocaleString('tr-TR')} ${CLBL[p.goalCard.currency]||p.goalCard.currency} — ${Math.min(100,((p.holdings[p.goalCard.currency]||0)/p.goalCard.amount*100)).toFixed(0)}%
         ${p.creditDueRound?`<span style="color:var(--red);font-size:.68rem"> 💳T${p.creditDueRound}</span>`:''}</div>
       <div class="pp-holdings">${CURRENCIES.filter(c=>(p.holdings[c]||0)>0.001).map(c=>`<div class="pp-chip">${p.holdings[c].toFixed(1)} ${CLBL[c]||c}</div>`).join('')}</div>
