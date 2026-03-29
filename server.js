@@ -102,7 +102,7 @@ const https = require('https');
 
 function httpsGet(url, timeoutMs = 6000) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { 'User-Agent': 'KurSavasları/1.0' } }, res => {
+    const req = https.get(url, { headers: { 'User-Agent': 'NodeJS/1.0' } }, res => {
       if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return; }
       let body = '';
       res.on('data', d => body += d);
