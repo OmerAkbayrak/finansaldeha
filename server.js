@@ -148,6 +148,23 @@ async function fetchRates() {
 
 const rooms = {};
 
+// ── Leaderboard (bot galibiyetleri) ──────────────────────────────────────────
+const leaderboard = []; // { name, rounds, date, avatarImg }
+const MAX_LEADERBOARD = 10;
+
+function updateLeaderboard(playerName, rounds, avatarImg) {
+  leaderboard.push({ name: playerName, rounds, avatarImg: avatarImg||'', date: new Date().toLocaleDateString('tr-TR') });
+  leaderboard.sort((a, b) => a.rounds - b.rounds);
+  if (leaderboard.length > MAX_LEADERBOARD) leaderboard.splice(MAX_LEADERBOARD);
+}
+
+// ── Report sistemi ────────────────────────────────────────────────────────────
+const reports = []; // { id, roomCode, reporterName, targetName, msg, timestamp, approved }
+let reportIdCounter = 1;
+
+// Mesaj geçmişi (oda bazlı, report için)
+// rooms[code].msgLog = [ { id, sender, msg, avatarImg, socketId } ]
+
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 function genCode() {
@@ -326,6 +343,7 @@ function checkCredits(room) {
 function finishGame(room) {
   clearTmr(room); room._locked = false; room.status = 'finished';
   const gs = room.gameState;
+  const hasBot = room.players.some(p => p.isBot);
   const ranked = [...room.players].sort((a, b) => {
     const aw = a.finished && !a.eliminated, bw = b.finished && !b.eliminated;
     if (aw && bw) return a.finishRound - b.finishRound;
@@ -334,6 +352,14 @@ function finishGame(room) {
     if (!a.eliminated && b.eliminated) return -1;
     return portfolioTL(b.holdings, gs.rates) - portfolioTL(a.holdings, gs.rates);
   });
+
+  // Bot oyununda insan kazandıysa leaderboard'a ekle
+  if (hasBot) {
+    const winner = ranked.find(p => !p.isBot && p.finished && !p.eliminated);
+    if (winner) updateLeaderboard(winner.name, winner.finishRound, winner.avatarImg);
+    io.emit('leaderboardUpdate', leaderboard);
+  }
+
   io.to(room.code).emit('gameOver', { ranking:ranked, rates:gs.rates });
 }
 
@@ -616,6 +642,8 @@ function endTurn(room) {
 // ── Socket.IO ─────────────────────────────────────────────────────────────────
 io.on('connection', socket => {
   console.log(`[+] ${socket.id}`);
+  // Bağlanan kullanıcıya mevcut leaderboard'u gönder
+  socket.emit('leaderboardUpdate', leaderboard);
 
   socket.on('createRoom', ({ name, avatarId, avatarName, avatarImg }) => {
     const code = genCode();
@@ -697,7 +725,63 @@ io.on('connection', socket => {
       return;
     }
 
-    io.to(room.code).emit('chatMsg', { name:p.name, msg:txt, avatarImg:p.avatarImg||'' });
+    // /report [oyuncu adı] — kullanıcıyı şikayet et
+    if (lower.startsWith('/report ')) {
+      const targetName = txt.slice(8).trim();
+      const target = room.players.find(q => q.name.toLowerCase() === targetName.toLowerCase() && !q.isBot);
+      if (!target) return socket.emit('error', `"${targetName}" adında oyuncu bulunamadı!`);
+      if (target.socketId === socket.id) return socket.emit('error', 'Kendinizi şikayet edemezsiniz!');
+      // Son mesajını log'dan al
+      const log = room.msgLog || [];
+      const lastMsg = [...log].reverse().find(m => m.sender === target.name);
+      const report = {
+        id: reportIdCounter++,
+        roomCode: room.code,
+        reporterName: p.name,
+        targetName: target.name,
+        lastMsg: lastMsg ? lastMsg.msg : '(mesaj yok)',
+        msgId: lastMsg ? lastMsg.id : null,
+        timestamp: new Date().toLocaleString('tr-TR'),
+        approved: false,
+      };
+      reports.push(report);
+      socket.emit('chatMsg', { name:'🚨 Sistem', msg:`✅ ${target.name} adlı kullanıcı şikayet edildi (ID: #${report.id}). Teşekkürler.` });
+      console.log(`[REPORT] #${report.id} | ${p.name} → ${target.name} | Oda: ${room.code} | Mesaj: "${report.lastMsg}"`);
+      return;
+    }
+
+    // /reportlist — şikayet listesini gör (admin)
+    if (lower === '/reportlist') {
+      if (reports.length === 0) {
+        socket.emit('chatMsg', { name:'📋 Sistem', msg:'Henüz şikayet yok.' });
+        return;
+      }
+      socket.emit('openReportList', { reports: reports.slice(-50) });
+      return;
+    }
+
+    // Normal mesaj — mesaj loguna ekle
+    if (!room.msgLog) room.msgLog = [];
+    const msgId = Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    room.msgLog.push({ id: msgId, sender: p.name, msg: txt, socketId: socket.id });
+    if (room.msgLog.length > 200) room.msgLog.splice(0, room.msgLog.length - 200);
+
+    io.to(room.code).emit('chatMsg', { name:p.name, msg:txt, avatarImg:p.avatarImg||'', msgId });
+  });
+
+  // /reportlist'ten mesaj silme onayı
+  socket.on('approveReport', ({ reportId }) => {
+    const report = reports.find(r => r.id === reportId);
+    if (!report || report.approved) return;
+    report.approved = true;
+    // İlgili odada mesajı sil
+    const room = rooms[report.roomCode];
+    if (room && report.msgId) {
+      io.to(report.roomCode).emit('deleteMsg', { msgId: report.msgId });
+      if (room.msgLog) room.msgLog = room.msgLog.filter(m => m.id !== report.msgId);
+    }
+    socket.emit('chatMsg', { name:'✅ Sistem', msg:`Şikayet #${reportId} onaylandı, mesaj silindi.` });
+    console.log(`[REPORT APPROVED] #${reportId} → mesaj silindi`);
   });
 
   socket.on('adminGive', ({ targetSocketId, currency, amount }) => {
